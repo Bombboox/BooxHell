@@ -4,7 +4,7 @@ class RedSquareBoss extends Boss {
         this.width = 100;
         this.height = 100;
         this.color = 'red';
-        this.currentPhase = 0;
+        this.currentPhase = 5;
         this.phaseTimer = 0;
         this.rushTarget = {x: 0, y: 0};
         this.rushSpeed = 0.1;
@@ -98,11 +98,18 @@ class RedSquareBoss extends Boss {
                 }
                 break;
 
-            case 3: // Player targeting phase
-                if (this.phaseTimer === 100) { //delay before rush
+            case 3:
+                if(this.phaseTimer > 100) {
+                    this.currentPhase = 4;
+                    this.phaseTimer = 0;
+                }
+                break;
+
+            case 4: // Player targeting phase
+                if (this.phaseTimer === 15) { //delay before rush
                     this.playerTargetPos = {x: player.x, y: player.y};
                 }
-                if (this.phaseTimer > 100) {
+                if (this.phaseTimer > 15) {
                     this.rush(this.playerTargetPos.x, this.playerTargetPos.y, 0.2);
                     const distToTarget = Math.sqrt(
                         Math.pow(this.x - this.playerTargetPos.x, 2) + 
@@ -112,24 +119,24 @@ class RedSquareBoss extends Boss {
                         this.rushCount++;
                         this.phaseTimer = 0;
                         if (this.rushCount >= 3) {
-                            this.currentPhase = 4;
+                            this.currentPhase = 5;
                         }
                     }
                 }
                 break;
 
-            case 4: // Rush to center for laser
+            case 5: // Rush to center for laser
                 this.rush(this.canvas.width/2, this.canvas.height/2);
                 const distToCenterForLaser = Math.sqrt((this.x - this.canvas.width/2)**2 + (this.x - this.canvas.width/2)**2);
                 if (distToCenterForLaser == 0) {
                     this.x = this.canvas.width/2;
-                    this.currentPhase = 5;
+                    this.currentPhase = 6;
                     this.phaseTimer = 0;
                     this.laserWarning = true;
                 }
                 break;
 
-            case 5: // Laser attack - 8 seconds
+            case 6: // Laser attack - 8 seconds
                 if (this.phaseTimer === 60) { // After 1 second warning
                     this.laserWarning = false;
                     this.firingLaser = true;
@@ -137,16 +144,45 @@ class RedSquareBoss extends Boss {
                 if (this.firingLaser) {
                     this.rotationSpeed += 0.0005;
                     this.rotation += this.rotationSpeed;
+                    // Calculate laser start and end points
+                    const laserStartX = this.x;
+                    const laserStartY = this.y;
+                    const laserEndX = this.x + Math.cos(this.rotation + Math.PI/2) * 1000;
+                    const laserEndY = this.y + Math.sin(this.rotation + Math.PI/2) * 1000;
+
+                    // Calculate player distance to laser line
+                    const x0 = player.x;
+                    const y0 = player.y;
+                    const x1 = laserStartX;
+                    const y1 = laserStartY;
+                    const x2 = laserEndX;
+                    const y2 = laserEndY;
+
+                    // Calculate if player is between start and end points
+                    const dot = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) / 
+                              ((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+                    
+                    if (dot >= 0 && dot <= 1) {
+                        // Calculate perpendicular distance
+                        const distance = Math.abs((x2 - x1) * (y1 - y0) - (x1 - x0) * (y2 - y1)) /
+                                      Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+                        
+                        if (distance < 20) {
+                            deathParticles = player.die();
+                            gameOver = true;
+                        }
+                    }
                 }
+                
                 if (this.phaseTimer > 480) { // 8 seconds
-                    this.currentPhase = 6;
+                    this.currentPhase = 7;
                     this.phaseTimer = 0;
                     this.firingLaser = false;
                     this.rotationSpeed = 0;
                 }
                 break;
 
-            case 6: // Return to top
+            case 7: // Return to top
                 this.rush(this.canvas.width/2, 100);
                 const distToTop = Math.abs(this.y - 100);
                 if (distToTop == 0) {
@@ -188,13 +224,13 @@ class RedSquareBoss extends Boss {
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
             this.ctx.moveTo(0, 0);
-            this.ctx.lineTo(0, this.canvas.height);
+            this.ctx.lineTo(0, 5000);
             this.ctx.stroke();
         }
         
         if (this.firingLaser) {
             this.ctx.fillStyle = 'red';
-            this.ctx.fillRect(-10, 0, 20, this.canvas.height);
+            this.ctx.fillRect(-10, 0, 20, 5000);
         }
         
         this.ctx.restore();

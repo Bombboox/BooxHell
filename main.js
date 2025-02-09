@@ -21,29 +21,19 @@ for(let i = 0; i < 200; i++) {
 }
 
 // Game objects
-const player = {
-    x: canvas.width / 2,
-    y: canvas.height - 50,
-    radius: 15,
-    color: 'white',
-    isShooting: false,
-    lastShot: 0,
-    fireRate: 100
-};
-
+const player = new Player(canvas);
 let currentBoss = null;
-let bullets = [];
 let gameOver = false;
 let gameStarted = false;
 let pulseValue = 0;
 let pulseDirection = 1;
 let loop;
+let deathParticles = [];
 
 // Event listeners
 canvas.addEventListener('mousemove', (e) => {
     if (!gameOver) {
-        player.x = Math.max(player.radius, Math.min(e.clientX, canvas.width - player.radius));
-        player.y = Math.max(100, Math.min(e.clientY, canvas.height - player.radius));
+        player.move(e.clientX, e.clientY, canvas);
     }
 });
 
@@ -88,45 +78,11 @@ function drawStars() {
     });
 }
 
-function shoot() {
-    const currentTime = Date.now();
-    if (player.isShooting && currentTime - player.lastShot >= player.fireRate) {
-        bullets.push({
-            x: player.x,
-            y: player.y,
-            radius: 5,
-            speed: 30,
-            damage: Math.floor(Math.random() * 20) + 100
-        });
-        player.lastShot = currentTime;
-    }
-}
-
-function drawPlayer() {
-    if (!gameOver) {
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
-        ctx.fillStyle = player.color;
-        ctx.fill();
-        ctx.closePath();
-    }
-}
-
-function drawBullets() {
-    bullets.forEach(bullet => {
-        ctx.beginPath();
-        ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'yellow';
-        ctx.fill();
-        ctx.closePath();
-    });
-}
-
 function checkCollisions() {
     if (!currentBoss) return;
 
     // Player bullets hitting boss
-    bullets = bullets.filter(bullet => {
+    player.bullets = player.bullets.filter(bullet => {
         if (bullet.x > currentBoss.x - currentBoss.width/2 &&
             bullet.x < currentBoss.x + currentBoss.width/2 &&
             bullet.y > currentBoss.y - currentBoss.height/2 &&
@@ -137,23 +93,47 @@ function checkCollisions() {
         return bullet.y > 0;
     });
 
-    // Check boss collisions with player (both bullets and direct contact)
+    // Check boss collisions with player
     if (currentBoss.checkCollisionWithPlayer(player)) {
-        gameOver = true;
+        if (player.alive) {
+            deathParticles = player.die();
+            gameOver = true;
+        }
     }
+}
+
+function updateDeathParticles() {
+    deathParticles = deathParticles.filter(p => p.alpha > 0);
+    deathParticles.forEach(p => {
+        p.x += Math.cos(p.angle) * p.speed;
+        p.y += Math.sin(p.angle) * p.speed;
+        p.speed *= 0.98;
+        p.alpha -= p.decay;
+    });
+}
+
+function drawDeathParticles() {
+    deathParticles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+        ctx.fill();
+        ctx.closePath();
+    });
 }
 
 function update() {
     if (!currentBoss?.active) return;
     if (!gameOver) {
-        shoot();
-        bullets.forEach(bullet => bullet.y -= bullet.speed);
+        player.shoot();
+        player.updateBullets();
         currentBoss.update();
         updateStars();
         checkCollisions();
     } else {
         currentBoss.update();
         updateStars();
+        updateDeathParticles();
     }
     
     pulseValue += 0.05 * pulseDirection;
@@ -167,9 +147,9 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawStars();
-    if (currentBoss) currentBoss.draw();
-    drawBullets();
-    drawPlayer();
+    if (currentBoss) currentBoss.draw(ctx);
+    player.draw(ctx);
+    drawDeathParticles();
 
     if (gameOver) {
         const alpha = 0.5 + pulseValue * 0.5;
@@ -195,6 +175,9 @@ function returnToMenu() {
 function resetGame() {
     gameOver = false;
     gameStarted = false;
+    deathParticles = [];
+    player.reset(canvas);
+    
     if (currentBoss) {
         currentBoss.health = currentBoss.maxHealth;
         currentBoss.y = -100;
@@ -209,9 +192,6 @@ function resetGame() {
         currentBoss.laserWarning = false;
         currentBoss.firingLaser = false;
     }
-    bullets = [];
-    player.x = canvas.width / 2;
-    player.y = canvas.height - 50;
 }
 
 function restartGame() {
