@@ -4,8 +4,8 @@ class Boss {
         this.ctx = canvas.getContext('2d');
         this.x = canvas.width / 2;
         this.y = -100;
-        this.maxHealth = 50000;
-        this.health = 50000;
+        this.maxHealth = 25000;
+        this.health = 25000;
         this.direction = 1;
         this.speed = 3;
         this.healthBarWidth = 400;

@@ -4,7 +4,7 @@ class RedSquareBoss extends Boss {
         this.width = 100;
         this.height = 100;
         this.color = 'red';
-        this.currentPhase = 5;
+        this.currentPhase = 0;
         this.phaseTimer = 0;
         this.rushTarget = {x: 0, y: 0};
         this.rushSpeed = 0.1;
@@ -173,7 +173,7 @@ class RedSquareBoss extends Boss {
                         }
                     }
                 }
-                
+
                 if (this.phaseTimer > 480) { // 8 seconds
                     this.currentPhase = 7;
                     this.phaseTimer = 0;
