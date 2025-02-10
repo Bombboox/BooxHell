@@ -14,18 +14,41 @@ class RedSquareBoss extends Boss {
         this.rotationSpeed = 0;
         this.rushCount = 0;
         this.playerTargetPos = {x: 0, y: 0};
+        // Trail effect properties
+        this.trailPositions = [];
+        this.maxTrailLength = 10; // How many trail images to show
+        this.trailOpacityStart = 0.5; // Starting opacity of trail
+        this.trailOpacityDecay = 0.05; // How much opacity decreases per trail
+        this.trailUpdateInterval = 2; // How many frames between trail updates
+        this.frameCount = 0;
     }
 
     rush(targetX, targetY, speed = 0.1) {
         const dx = targetX - this.x;
         const dy = targetY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Update trail positions
+        this.frameCount++;
+        if (this.frameCount >= this.trailUpdateInterval) {
+            this.trailPositions.unshift({
+                x: this.x,
+                y: this.y,
+                rotation: this.rotation
+            });
+            if (this.trailPositions.length > this.maxTrailLength) {
+                this.trailPositions.pop();
+            }
+            this.frameCount = 0;
+        }
+        
         if (distance > 0.1) {
             this.x += dx * speed;
             this.y += dy * speed;
         } else {
             this.x = targetX;
             this.y = targetY;
+            this.trailPositions = [];
         }
     }
 
@@ -44,7 +67,7 @@ class RedSquareBoss extends Boss {
                 break;
                 
             case 2: // Bullet hell
-                if (this.phaseTimer % 10 === 0) {
+                if (this.phaseTimer % 3 === 0) {
                     for (let i = 0; i < 8; i++) {
                         const angle = this.rotation + (i * Math.PI / 4);
                         this.bullets.push({
@@ -72,6 +95,7 @@ class RedSquareBoss extends Boss {
         switch(this.currentPhase) {
             case 0: // Basic shooting - 5 seconds
                 this.move();
+                this.trailPositions = []; // Clear trail when not rushing
                 if (this.phaseTimer > 300) {
                     this.currentPhase = 1;
                     this.phaseTimer = 0;
@@ -86,6 +110,7 @@ class RedSquareBoss extends Boss {
                     this.currentPhase = 2;
                     this.phaseTimer = 0;
                     this.rotation = -Math.PI/2 - Math.PI/4; // Start at -135 degrees
+                    this.trailPositions = []; // Clear trail
                 }
                 break;
 
@@ -118,6 +143,7 @@ class RedSquareBoss extends Boss {
                     if (distToTarget == 0) {
                         this.rushCount++;
                         this.phaseTimer = 0;
+                        this.trailPositions = []; // Clear trail
                         if (this.rushCount >= 3) {
                             this.currentPhase = 5;
                         }
@@ -133,6 +159,7 @@ class RedSquareBoss extends Boss {
                     this.currentPhase = 6;
                     this.phaseTimer = 0;
                     this.laserWarning = true;
+                    this.trailPositions = []; // Clear trail
                 }
                 break;
 
@@ -190,6 +217,7 @@ class RedSquareBoss extends Boss {
                     this.currentPhase = 0;
                     this.phaseTimer = 0;
                     this.rotation = 0;
+                    this.trailPositions = []; // Clear trail
                 }
                 break;
         }
@@ -210,6 +238,20 @@ class RedSquareBoss extends Boss {
     }
 
     drawBoss() {
+        // Draw trail first
+        this.trailPositions.forEach((pos, index) => {
+            const opacity = this.trailOpacityStart - (index * this.trailOpacityDecay);
+            if (opacity > 0) {
+                this.ctx.save();
+                this.ctx.translate(pos.x, pos.y);
+                this.ctx.rotate(pos.rotation);
+                this.ctx.fillStyle = `rgba(255, 0, 0, ${opacity})`;
+                this.ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                this.ctx.restore();
+            }
+        });
+
+        // Draw main boss
         this.ctx.save();
         this.ctx.translate(this.x, this.y);
         this.ctx.rotate(this.rotation);
