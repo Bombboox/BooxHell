@@ -29,6 +29,48 @@ let pulseValue = 0;
 let pulseDirection = 1;
 let loop;
 let deathParticles = [];
+let fightStartTime = 0;
+let bestTimes = {};
+let defeatedBosses = {};
+
+// Load saved data from cookies
+function loadSavedData() {
+    const timeCookie = document.cookie.split('; ').find(row => row.startsWith('bestTimes='));
+    const defeatCookie = document.cookie.split('; ').find(row => row.startsWith('defeatedBosses='));
+    
+    if (timeCookie) {
+        bestTimes = JSON.parse(decodeURIComponent(timeCookie.split('=')[1]));
+    }
+    if (defeatCookie) {
+        defeatedBosses = JSON.parse(decodeURIComponent(defeatCookie.split('=')[1]));
+        
+        // Update boss tiles appearance
+        for (const boss in defeatedBosses) {
+            if (defeatedBosses[boss]) {
+                const tile = document.querySelector(`.boss-tile[onclick="selectBoss('${boss}')"]`);
+                console.log(`.boss-tile[onclick="selectBoss('${boss}')"]`)
+
+                if (tile) {
+                    tile.style.backgroundColor = '#4a9c4a'; // Green background for defeated bosses
+                    const timeText = document.createElement('p');
+                    timeText.textContent = `Best: ${formatTime(bestTimes[boss] || 0)}`;
+                    tile.appendChild(timeText);
+                }
+            }
+        }
+    }
+}
+
+function saveCookie(name, value) {
+    const encoded = encodeURIComponent(JSON.stringify(value));
+    document.cookie = `${name}=${encoded};max-age=31536000;path=/`;
+}
+
+function formatTime(ms) {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = ((ms % 60000) / 1000).toFixed(2);
+    return `${minutes}:${seconds.padStart(5, '0')}`;
+}
 
 // Event listeners
 canvas.addEventListener('mousemove', (e) => {
@@ -76,6 +118,16 @@ function drawStars() {
         ctx.fillStyle = 'white';
         ctx.fillRect(star.x, star.y, star.size, star.size);
     });
+}
+
+function drawTimer() {
+    if (!gameStarted || gameOver || !currentBoss?.active) return;
+    
+    const currentTime = Date.now() - fightStartTime;
+    ctx.font = '20px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'right';
+    ctx.fillText(formatTime(currentTime), canvas.width - 20, 30);
 }
 
 function checkCollisions() {
@@ -150,6 +202,7 @@ function draw() {
     if (currentBoss) currentBoss.draw(ctx);
     player.draw(ctx);
     drawDeathParticles();
+    drawTimer();
 
     if (gameOver) {
         const alpha = 0.5 + pulseValue * 0.5;
@@ -176,6 +229,7 @@ function resetGame() {
     gameOver = false;
     gameStarted = false;
     deathParticles = [];
+    fightStartTime = 0;
     player.reset(canvas);
     
     if (currentBoss) {
@@ -198,6 +252,7 @@ function restartGame() {
     resetGame();
     currentBoss.active = true;
     gameStarted = true;
+    fightStartTime = Date.now();
     const bossEntrance = setInterval(() => {
         if(currentBoss.y < 100) {
             currentBoss.y += 5;
@@ -271,13 +326,27 @@ function animateExplosion(particles) {
     if (stillActive) {
         requestAnimationFrame(() => animateExplosion(particles));
     } else {
+        const finalTime = Date.now() - fightStartTime;
+        const currentBossType = currentBoss.constructor.name.toLowerCase();
+        
+        // Update best time if it's better or first completion
+        if (!bestTimes[currentBossType] || finalTime < bestTimes[currentBossType]) {
+            bestTimes[currentBossType] = finalTime;
+            saveCookie('bestTimes', bestTimes);
+        }
+        
+        // Mark boss as defeated
+        defeatedBosses[currentBossType] = true;
+        saveCookie('defeatedBosses', defeatedBosses);
+        
         // Show victory message
         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.font = 'bold 60px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('VICTORY!', canvas.width/2, canvas.height/2);
         ctx.font = '30px Arial';
-        ctx.fillText('Well Done!', canvas.width/2, canvas.height/2 + 50);
+        ctx.fillText(`Time: ${formatTime(finalTime)}`, canvas.width/2, canvas.height/2 + 50);
+        ctx.fillText(`Best: ${formatTime(bestTimes[currentBossType])}`, canvas.width/2, canvas.height/2 + 90);
         
         setTimeout(() => {
             bossSelect.style.display = 'grid';
@@ -287,6 +356,15 @@ function animateExplosion(particles) {
             currentBoss.y = -100;
             currentBoss.active = false;
             bullets = [];
+            
+            // Update boss tile appearance
+            const tile = document.querySelector(`.boss-tile[onclick*="${currentBossType}"]`);
+            if (tile) {
+                tile.style.backgroundColor = '#4a9c4a';
+                const timeText = tile.querySelector('p:last-child') || document.createElement('p');
+                timeText.textContent = `Best: ${formatTime(bestTimes[currentBossType])}`;
+                tile.appendChild(timeText);
+            }
         }, 5000);
     }
 }
@@ -298,7 +376,7 @@ function selectBoss(bossType) {
     
     // Create the appropriate boss based on type
     switch(bossType) {
-        case 'redSquare':
+        case 'redsquareboss':
             currentBoss = new RedSquareBoss(canvas);
             break;
         // Add more boss types here
@@ -327,6 +405,7 @@ function selectBoss(bossType) {
         setTimeout(() => {
             warningEl.style.display = 'none';
             currentBoss.active = true;
+            fightStartTime = Date.now();
             const bossEntrance = setInterval(() => {
                 if(currentBoss.y < 100) {
                     currentBoss.y += 5;
@@ -367,5 +446,6 @@ function gameLoop() {
     }
 }
 
-// Initially hide the canvas
+// Initially hide the canvas and load saved data
 canvas.style.display = 'none';
+loadSavedData();
