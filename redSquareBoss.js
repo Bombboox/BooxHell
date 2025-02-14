@@ -4,7 +4,7 @@ class RedSquareBoss extends Boss {
         this.width = 100;
         this.height = 100;
         this.color = 'red';
-        this.startingPhase = 4;
+        this.startingPhase = 0;
         this.currentPhase = this.startingPhase;
         this.phaseTimer = 0;
         this.rushTarget = {x: 0, y: 0};
