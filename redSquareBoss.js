@@ -4,7 +4,7 @@ class RedSquareBoss extends Boss {
         this.width = 100;
         this.height = 100;
         this.color = 'red';
-        this.startingPhase = 0;
+        this.startingPhase = 5;
         this.currentPhase = this.startingPhase;
         this.phaseTimer = 0;
         this.rushTarget = {x: 0, y: 0};
@@ -14,7 +14,7 @@ class RedSquareBoss extends Boss {
         this.firingLaser = false;
         this.rotationSpeed = 0;
         this.rushCount = 0;
-        this.playerTargetPos = {x: 0, y: 0};
+        this.playerTargetPos = {x: 100, y: 100};
         // Trail effect properties
         this.trailPositions = [];
         this.maxTrailLength = 10;
@@ -94,7 +94,7 @@ class RedSquareBoss extends Boss {
                 
                 let bulletFrequency = 160;
                 if (proj.timer % bulletFrequency === 0) {
-                    let bulletCount = 16;
+                    let bulletCount = 24;
                     for (let i = 0; i < bulletCount; i++) {
                         const angle = (i * Math.PI * 2) / bulletCount;
                         this.bullets.push({

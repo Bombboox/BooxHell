@@ -231,25 +231,21 @@ function resetGame() {
     deathParticles = [];
     fightStartTime = 0;
     player.reset(canvas);
-    
-    if (currentBoss) {
-        currentBoss.health = currentBoss.maxHealth;
-        currentBoss.y = -100;
-        currentBoss.x = canvas.width / 2;
-        currentBoss.active = false;
-        currentBoss.bullets = [];
-        currentBoss.currentPhase = currentBoss.startingPhase;
-        currentBoss.phaseTimer = 0;
-        currentBoss.rotation = 0;
-        currentBoss.rotationSpeed = 0;
-        currentBoss.rushCount = 0;
-        currentBoss.laserWarning = false;
-        currentBoss.firingLaser = false;
-    }
+    currentBoss = null;
 }
 
 function restartGame() {
+    let temp = currentBoss;
     resetGame();
+    // Create new instance of the same boss type
+    const bossType = temp.constructor.name.toLowerCase();
+    switch(bossType) {
+        case 'redsquareboss':
+            currentBoss = new RedSquareBoss(canvas);
+            break;
+        // Add more boss types here
+    }
+    currentBoss.y = -100;
     currentBoss.active = true;
     gameStarted = true;
     fightStartTime = Date.now();
