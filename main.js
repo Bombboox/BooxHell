@@ -238,7 +238,7 @@ function resetGame() {
         currentBoss.x = canvas.width / 2;
         currentBoss.active = false;
         currentBoss.bullets = [];
-        currentBoss.currentPhase = 0;
+        currentBoss.currentPhase = currentBoss.startingPhase;
         currentBoss.phaseTimer = 0;
         currentBoss.rotation = 0;
         currentBoss.rotationSpeed = 0;
