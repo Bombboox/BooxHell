@@ -350,9 +350,9 @@ class RedSquareBoss extends Boss {
                 this.ctx.translate(proj.x, proj.y);
                 this.ctx.rotate(proj.rotation);
                 this.ctx.beginPath();
-                this.ctx.moveTo(0, -20);
-                this.ctx.lineTo(-20, 20);
-                this.ctx.lineTo(20, 20);
+                this.ctx.moveTo(0, -20);        // Top point
+                this.ctx.lineTo(-17.32, 10);    // Bottom left point
+                this.ctx.lineTo(17.32, 10);     // Bottom right point
                 this.ctx.closePath();
                 this.ctx.fillStyle = 'orange';
                 this.ctx.fill();
