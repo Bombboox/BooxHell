@@ -232,6 +232,9 @@ function returnToMenu() {
     cancelAnimationFrame(loop);
     bossSelect.style.display = 'grid';
     canvas.style.display = 'none';
+    if (typeof sound !== 'undefined') {
+        sound.stop('waffle_theme');
+    }
     resetGame();
 }
 
@@ -255,6 +258,10 @@ function restartGame() {
             break;
         case 'waffleboss':
             currentBoss = new WaffleBoss(canvas);
+            if (typeof sound !== 'undefined') {
+                sound.play('waffle_spawn', { restart: true });
+                sound.play('waffle_theme', { loop: true, restart: true });
+            }
             break;
         // Add more boss types here
     }
@@ -335,6 +342,9 @@ function animateExplosion(particles) {
     if (stillActive) {
         requestAnimationFrame(() => animateExplosion(particles));
     } else {
+        if (currentBoss instanceof WaffleBoss && typeof sound !== 'undefined') {
+            sound.stop('waffle_theme');
+        }
         const finalTime = Date.now() - fightStartTime;
         const currentBossType = currentBoss.constructor.name.toLowerCase();
         
@@ -417,6 +427,10 @@ function selectBoss(bossType) {
         setTimeout(() => {
             warningEl.style.display = 'none';
             currentBoss.active = true;
+            if (currentBoss instanceof WaffleBoss && typeof sound !== 'undefined') {
+                sound.play('waffle_spawn', { restart: true });
+                sound.play('waffle_theme', { loop: true, restart: true });
+            }
             fightStartTime = Date.now();
             const bossEntrance = setInterval(() => {
                 if(currentBoss.y < 100) {

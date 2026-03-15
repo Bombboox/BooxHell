@@ -42,6 +42,10 @@ class WaffleBoss extends Boss {
         this.explosionSpawnInterval = 35;
         this.bottomBulletInterval = 12;
 
+        this.lastLaserSoundTime = 0;
+        this.lastCometSoundTime = 0;
+        this.nextYell = 1;
+
         this.sprite = new Image();
         this.sprite.src = 'sprites/waffle.png';
         this.droneSprite = new Image();
@@ -90,6 +94,34 @@ class WaffleBoss extends Boss {
         while (normalized > Math.PI) normalized -= Math.PI * 2;
         while (normalized < -Math.PI) normalized += Math.PI * 2;
         return normalized;
+    }
+
+    playYell() {
+        if (typeof sound === 'undefined') return;
+        const key = this.nextYell === 1 ? 'waffle_yell_1' : 'waffle_yell_2';
+        sound.play(key, { allowOverlap: true, volume: 0.5 });
+        this.nextYell = this.nextYell === 1 ? 2 : 1;
+    }
+
+    playLaserSound() {
+        if (typeof sound === 'undefined') return;
+        const now = performance.now();
+        if (now - this.lastLaserSoundTime < 180) return;
+        this.lastLaserSoundTime = now;
+        sound.play('waffle_laser', { allowOverlap: true, volume: 0.1 });
+    }
+
+    playExplosionSound() {
+        if (typeof sound === 'undefined') return;
+        sound.play('waffle_explosion', { allowOverlap: true, cooldownMs: 120, volume: 0.2 });
+    }
+
+    playCometSound() {
+        if (typeof sound === 'undefined') return;
+        const now = performance.now();
+        if (now - this.lastCometSoundTime < 120) return;
+        this.lastCometSoundTime = now;
+        sound.play('waffle_comet', { allowOverlap: true, volume: 0.2 });
     }
 
     spawnDroneTowardPlayer(fireInterval = 45) {
@@ -246,6 +278,7 @@ class WaffleBoss extends Boss {
             if (explosion.state === 'warn' && explosion.timer >= explosion.warningDuration) {
                 explosion.state = 'boom';
                 explosion.timer = 0;
+                this.playExplosionSound();
 
                 const bulletCount = 18;
                 for (let i = 0; i < bulletCount; i++) {
@@ -305,6 +338,7 @@ class WaffleBoss extends Boss {
                 state: 'warn'
             });
             this.emitAura();
+            this.playLaserSound();
         }
 
         this.lasers.forEach(laser => {
@@ -346,6 +380,7 @@ class WaffleBoss extends Boss {
                     this.phase = 1;
                     this.phaseTimer = 0;
                     this.emitAura();
+                    this.playYell();
                 }
                 break;
             case 1:
@@ -376,10 +411,12 @@ class WaffleBoss extends Boss {
                 }
                 break;
             case 3:
+                this.rotation = Math.atan2(player.y - this.y, player.x - this.x);
                 this.rush(player.x, player.y, 0.02);
                 if (this.phaseTimer % this.cometSpawnInterval === 0) {
                     this.spawnComet();
                     this.spawnComet();
+                    this.playCometSound();
                 }
                 if (this.phaseTimer % this.leftDroneSpawnInterval === 0) {
                     this.spawnDroneFromLeft();
@@ -388,6 +425,7 @@ class WaffleBoss extends Boss {
                     this.phase = 4;
                     this.phaseTimer = 0;
                     this.emitAura();
+                    this.playYell();
                 }
                 break;
             case 4:
