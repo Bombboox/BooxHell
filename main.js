@@ -135,12 +135,22 @@ function checkCollisions() {
 
     // Player bullets hitting boss
     player.bullets = player.bullets.filter(bullet => {
-        if (bullet.x > currentBoss.x - currentBoss.width/2 &&
-            bullet.x < currentBoss.x + currentBoss.width/2 &&
-            bullet.y > currentBoss.y - currentBoss.height/2 &&
-            bullet.y < currentBoss.y + currentBoss.height/2) {
-            currentBoss.takeDamage(bullet.damage);
-            return false;
+        if (currentBoss.isCircular) {
+            const dx = bullet.x - currentBoss.x;
+            const dy = bullet.y - currentBoss.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance < currentBoss.radius + bullet.radius) {
+                currentBoss.takeDamage(bullet.damage);
+                return false;
+            }
+        } else {
+            if (bullet.x > currentBoss.x - currentBoss.width/2 &&
+                bullet.x < currentBoss.x + currentBoss.width/2 &&
+                bullet.y > currentBoss.y - currentBoss.height/2 &&
+                bullet.y < currentBoss.y + currentBoss.height/2) {
+                currentBoss.takeDamage(bullet.damage);
+                return false;
+            }
         }
         return bullet.y > 0;
     });
@@ -242,6 +252,9 @@ function restartGame() {
     switch(bossType) {
         case 'redsquareboss':
             currentBoss = new RedSquareBoss(canvas);
+            break;
+        case 'waffleboss':
+            currentBoss = new WaffleBoss(canvas);
             break;
         // Add more boss types here
     }
@@ -374,6 +387,9 @@ function selectBoss(bossType) {
     switch(bossType) {
         case 'redsquareboss':
             currentBoss = new RedSquareBoss(canvas);
+            break;
+        case 'waffleboss':
+            currentBoss = new WaffleBoss(canvas);
             break;
         // Add more boss types here
     }
