@@ -5,8 +5,8 @@ class WaffleBoss extends Boss {
         this.width = this.radius * 2;
         this.height = this.radius * 2;
         this.isCircular = true;
-        this.maxHealth = 30000;
-        this.health = 30000;
+        this.maxHealth = 15000;
+        this.health = 15000;
         this.speed = 2.5;
         this.direction = 1;
         this.phase = 0;
@@ -401,7 +401,7 @@ class WaffleBoss extends Boss {
                 if (this.phaseTimer % this.sideDroneSpawnInterval === 0) {
                     this.spawnDroneFromRight();
                 }
-                if (this.phaseTimer > 520) {
+                if (this.phaseTimer > 420) {
                     this.phase = 3;
                     this.phaseTimer = 0;
                     this.laserWarning = false;
@@ -421,7 +421,7 @@ class WaffleBoss extends Boss {
                 if (this.phaseTimer % this.leftDroneSpawnInterval === 0) {
                     this.spawnDroneFromLeft();
                 }
-                if (this.phaseTimer > 320) {
+                if (this.phaseTimer > 260) {
                     this.phase = 4;
                     this.phaseTimer = 0;
                     this.emitAura();
