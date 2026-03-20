@@ -18,10 +18,9 @@ class Player {
         }
     }
 
-    shoot() {
+    shoot(currentTime = performance.now()) {
         if (!this.alive) return;
-        
-        const currentTime = Date.now();
+
         if (this.isShooting && currentTime - this.lastShot >= this.fireRate) {
             this.bullets.push({
                 x: this.x,
@@ -34,8 +33,8 @@ class Player {
         }
     }
 
-    updateBullets() {
-        this.bullets.forEach(bullet => bullet.y -= bullet.speed);
+    updateBullets(deltaFrames = 1) {
+        this.bullets.forEach(bullet => bullet.y -= bullet.speed * deltaFrames);
         this.bullets = this.bullets.filter(bullet => bullet.y > 0);
     }
 
@@ -86,5 +85,6 @@ class Player {
         this.bullets = [];
         this.alive = true;
         this.isShooting = false;
+        this.lastShot = 0;
     }
 }

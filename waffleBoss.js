@@ -60,32 +60,35 @@ class WaffleBoss extends Boss {
         });
     }
 
-    updateAura() {
+    updateAura(deltaFrames = 1) {
         this.auraBursts = this.auraBursts.filter(burst => burst.alpha > 0);
         this.auraBursts.forEach(burst => {
-            burst.radius += 2.5;
-            burst.alpha -= 0.02;
+            burst.radius += 2.5 * deltaFrames;
+            burst.alpha -= 0.02 * deltaFrames;
         });
     }
 
-    move() {
-        this.x += this.speed * this.direction;
+    move(deltaFrames = 1) {
+        this.x += this.speed * this.direction * deltaFrames;
         if (this.x + this.radius > this.canvas.width || this.x - this.radius < 0) {
             this.direction *= -1;
         }
     }
 
-    rush(targetX, targetY, speed = this.rushSpeed) {
+    rush(targetX, targetY, speed = this.rushSpeed, deltaFrames = 1) {
         const dx = targetX - this.x;
         const dy = targetY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
         if (distance > 0.5) {
-            this.x += dx * speed;
-            this.y += dy * speed;
+            const moveFactor = this.getDeltaFactor(speed, deltaFrames);
+            this.x += dx * moveFactor;
+            this.y += dy * moveFactor;
+            return false;
         } else {
             this.x = targetX;
             this.y = targetY;
+            return true;
         }
     }
 
@@ -169,16 +172,16 @@ class WaffleBoss extends Boss {
         });
     }
 
-    updateDrones() {
+    updateDrones(deltaFrames = 1) {
         this.drones.forEach(drone => {
-            drone.x += drone.dx;
-            drone.y += drone.dy;
+            drone.x += drone.dx * deltaFrames;
+            drone.y += drone.dy * deltaFrames;
 
             const faceAngle = Math.atan2(player.y - drone.y, player.x - drone.x);
             drone.rotation = faceAngle;
 
-            drone.fireTimer++;
-            if (drone.fireTimer % drone.fireInterval === 0) {
+            drone.fireTimer += deltaFrames;
+            while (drone.fireTimer >= drone.fireInterval) {
                 const bulletSpeed = 7;
                 this.bullets.push({
                     x: drone.x,
@@ -188,6 +191,7 @@ class WaffleBoss extends Boss {
                     radius: 6,
                     type: 'droneBullet'
                 });
+                drone.fireTimer -= drone.fireInterval;
             }
         });
 
@@ -224,9 +228,9 @@ class WaffleBoss extends Boss {
         });
     }
 
-    updateComets() {
+    updateComets(deltaFrames = 1) {
         this.comets.forEach(comet => {
-            comet.t += comet.speed;
+            comet.t += comet.speed * deltaFrames;
             if (comet.t > 1) {
                 comet.t = 1;
             }
@@ -272,12 +276,12 @@ class WaffleBoss extends Boss {
         });
     }
 
-    updateExplosions() {
+    updateExplosions(deltaFrames = 1) {
         this.explosions.forEach(explosion => {
-            explosion.timer++;
+            explosion.timer += deltaFrames;
             if (explosion.state === 'warn' && explosion.timer >= explosion.warningDuration) {
                 explosion.state = 'boom';
-                explosion.timer = 0;
+                explosion.timer -= explosion.warningDuration;
                 this.playExplosionSound();
 
                 const bulletCount = 18;
@@ -293,7 +297,7 @@ class WaffleBoss extends Boss {
                     });
                 }
             } else if (explosion.state === 'boom') {
-                explosion.blastRadius += 6;
+                explosion.blastRadius += 6 * deltaFrames;
                 if (explosion.timer >= explosion.boomDuration) {
                     explosion.state = 'done';
                 }
@@ -303,10 +307,10 @@ class WaffleBoss extends Boss {
         this.explosions = this.explosions.filter(explosion => explosion.state !== 'done');
     }
 
-    updateBullets() {
+    updateBullets(deltaFrames = 1) {
         this.bullets.forEach(bullet => {
-            bullet.x += bullet.dx;
-            bullet.y += bullet.dy;
+            bullet.x += bullet.dx * deltaFrames;
+            bullet.y += bullet.dy * deltaFrames;
         });
 
         this.bullets = this.bullets.filter(bullet =>
@@ -317,19 +321,21 @@ class WaffleBoss extends Boss {
         );
     }
 
-    updateLaserCycle() {
+    updateLaserCycle(deltaFrames = 1) {
         const warningDuration = 25;
         const fireDuration = 80;
 
-        this.laserTimer++;
+        const previousLaserTimer = this.laserTimer;
+        this.laserTimer += deltaFrames;
 
         const targetAngle = Math.atan2(player.y - this.y, player.x - this.x);
         const delta = this.normalizeAngle(targetAngle - this.rotation);
-        const turnSpeed = 0.25;
+        const turnSpeed = 0.25 * deltaFrames;
         this.rotation += Math.max(-turnSpeed, Math.min(turnSpeed, delta));
         this.laserRotation = this.rotation;
 
-        if (this.laserTimer % this.laserSetInterval === 0) {
+        const laserTriggers = this.countIntervalTriggers(previousLaserTimer, this.laserTimer, this.laserSetInterval);
+        for (let i = 0; i < laserTriggers; i++) {
             this.lasers.push({
                 angle: this.laserRotation,
                 timer: 0,
@@ -342,11 +348,12 @@ class WaffleBoss extends Boss {
         }
 
         this.lasers.forEach(laser => {
-            laser.timer++;
+            laser.timer += deltaFrames;
             if (laser.state === 'warn' && laser.timer >= laser.warningDuration) {
                 laser.state = 'fire';
-                laser.timer = 0;
-            } else if (laser.state === 'fire' && laser.timer >= laser.fireDuration) {
+                laser.timer -= laser.warningDuration;
+            }
+            if (laser.state === 'fire' && laser.timer >= laser.fireDuration) {
                 laser.state = 'done';
             }
         });
@@ -354,26 +361,28 @@ class WaffleBoss extends Boss {
         this.lasers = this.lasers.filter(laser => laser.state !== 'done');
     }
 
-    update() {
+    update(deltaFrames = 1) {
         if (!this.active) return;
 
-        this.phaseTimer++;
-        this.glowTime += 0.05;
-        this.updateAura();
-        this.updateDrones();
-        this.updateComets();
-        this.updateExplosions();
-        this.updateBullets();
+        this.updateHealthShake(deltaFrames);
+        const previousPhaseTimer = this.phaseTimer;
+        this.phaseTimer += deltaFrames;
+        this.glowTime += 0.05 * deltaFrames;
+        this.updateAura(deltaFrames);
+        this.updateDrones(deltaFrames);
+        this.updateComets(deltaFrames);
+        this.updateExplosions(deltaFrames);
+        this.updateBullets(deltaFrames);
 
         switch (this.phase) {
             case 0:
                 this.rotation = Math.PI / 2;
-                this.x += this.speed * 1.8 * this.direction;
+                this.x += this.speed * 1.8 * this.direction * deltaFrames;
                 this.y = 100 + Math.sin(this.phaseTimer * 0.08) * 25;
                 if (this.x + this.radius > this.canvas.width || this.x - this.radius < 0) {
                     this.direction *= -1;
                 }
-                if (this.phaseTimer % this.phase0DroneInterval === 0) {
+                for (let i = 0; i < this.countIntervalTriggers(previousPhaseTimer, this.phaseTimer, this.phase0DroneInterval); i++) {
                     this.spawnDroneTowardPlayer(30);
                 }
                 if (this.phaseTimer > 320) {
@@ -384,8 +393,7 @@ class WaffleBoss extends Boss {
                 }
                 break;
             case 1:
-                this.rush(this.canvas.width / 2, this.canvas.height / 2);
-                if (this.x === this.canvas.width / 2 && this.y === this.canvas.height / 2) {
+                if (this.rush(this.canvas.width / 2, this.canvas.height / 2, this.rushSpeed, deltaFrames)) {
                     this.phase = 2;
                     this.phaseTimer = 0;
                     this.laserState = 'aim';
@@ -397,8 +405,8 @@ class WaffleBoss extends Boss {
                 }
                 break;
             case 2:
-                this.updateLaserCycle();
-                if (this.phaseTimer % this.sideDroneSpawnInterval === 0) {
+                this.updateLaserCycle(deltaFrames);
+                for (let i = 0; i < this.countIntervalTriggers(previousPhaseTimer, this.phaseTimer, this.sideDroneSpawnInterval); i++) {
                     this.spawnDroneFromRight();
                 }
                 if (this.phaseTimer > 420) {
@@ -412,13 +420,13 @@ class WaffleBoss extends Boss {
                 break;
             case 3:
                 this.rotation = Math.atan2(player.y - this.y, player.x - this.x);
-                this.rush(player.x, player.y, 0.02);
-                if (this.phaseTimer % this.cometSpawnInterval === 0) {
+                this.rush(player.x, player.y, 0.02, deltaFrames);
+                for (let i = 0; i < this.countIntervalTriggers(previousPhaseTimer, this.phaseTimer, this.cometSpawnInterval); i++) {
                     this.spawnComet();
                     this.spawnComet();
                     this.playCometSound();
                 }
-                if (this.phaseTimer % this.leftDroneSpawnInterval === 0) {
+                for (let i = 0; i < this.countIntervalTriggers(previousPhaseTimer, this.phaseTimer, this.leftDroneSpawnInterval); i++) {
                     this.spawnDroneFromLeft();
                 }
                 if (this.phaseTimer > 260) {
@@ -429,10 +437,10 @@ class WaffleBoss extends Boss {
                 }
                 break;
             case 4:
-                if (this.phaseTimer % this.explosionSpawnInterval === 0) {
+                for (let i = 0; i < this.countIntervalTriggers(previousPhaseTimer, this.phaseTimer, this.explosionSpawnInterval); i++) {
                     this.spawnExplosion();
                 }
-                if (this.phaseTimer % this.bottomBulletInterval === 0) {
+                for (let i = 0; i < this.countIntervalTriggers(previousPhaseTimer, this.phaseTimer, this.bottomBulletInterval); i++) {
                     this.bullets.push({
                         x: Math.random() * this.canvas.width,
                         y: this.canvas.height + 10,
@@ -449,8 +457,7 @@ class WaffleBoss extends Boss {
                 }
                 break;
             case 5:
-                this.rush(this.canvas.width / 2, 100, 0.08);
-                if (this.x === this.canvas.width / 2 && this.y === 100) {
+                if (this.rush(this.canvas.width / 2, 100, 0.08, deltaFrames)) {
                     this.phase = 0;
                     this.phaseTimer = 0;
                     this.rotation = 0;

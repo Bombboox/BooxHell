@@ -16,16 +16,17 @@ class Boss {
         this.bullets = [];
     }
 
-    update() {
+    update(deltaFrames = 1) {
         if (!this.active) return;
-        
-        this.move();
-        this.shoot();
-        this.updateBullets();
+
+        this.updateHealthShake(deltaFrames);
+        this.move(deltaFrames);
+        this.shoot(deltaFrames);
+        this.updateBullets(deltaFrames);
     }
 
-    move() {
-        this.x += this.speed * this.direction;
+    move(deltaFrames = 1) {
+        this.x += this.speed * this.direction * deltaFrames;
         if (this.x + this.width/2 > this.canvas.width || this.x - this.width/2 < 0) {
             this.direction *= -1;
         }
@@ -35,8 +36,29 @@ class Boss {
         // Override in child class
     }
 
-    updateBullets() {
-        this.bullets.forEach(bullet => bullet.y += bullet.speed);
+    updateBullets(deltaFrames = 1) {
+        this.bullets.forEach(bullet => bullet.y += bullet.speed * deltaFrames);
+    }
+
+    updateHealthShake(deltaFrames = 1) {
+        this.healthShake = Math.max(0, this.healthShake * Math.pow(0.9, deltaFrames));
+    }
+
+    getDeltaFactor(factor, deltaFrames = 1) {
+        if (factor <= 0) return 0;
+        if (factor >= 1) return 1;
+        return 1 - Math.pow(1 - factor, deltaFrames);
+    }
+
+    getDeltaChance(chancePerFrame, deltaFrames = 1) {
+        if (chancePerFrame <= 0) return 0;
+        if (chancePerFrame >= 1) return 1;
+        return 1 - Math.pow(1 - chancePerFrame, deltaFrames);
+    }
+
+    countIntervalTriggers(previousTimer, currentTimer, interval) {
+        if (interval <= 0) return 0;
+        return Math.max(0, Math.floor(currentTimer / interval) - Math.floor(previousTimer / interval));
     }
 
     drawHealthBar() {
@@ -81,8 +103,6 @@ class Boss {
             this.healthBarWidth * healthPercentage, 
             this.healthBarHeight
         );
-
-        this.healthShake *= 0.9;
     }
 
     draw() {

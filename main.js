@@ -3,6 +3,8 @@ const ctx = canvas.getContext('2d');
 const bossSelect = document.getElementById('bossSelect');
 const countdownEl = document.getElementById('countdown');
 const warningEl = document.getElementById('warning');
+const BASE_FRAME_MS = 1000 / 60;
+const MAX_DELTA_MS = 100;
 
 // Set canvas to full window size
 canvas.width = window.innerWidth;
@@ -32,6 +34,9 @@ let deathParticles = [];
 let fightStartTime = 0;
 let bestTimes = {};
 let defeatedBosses = {};
+let entranceAnimation = null;
+let lastFrameTime = null;
+let lastExplosionFrameTime = null;
 
 // Load saved data from cookies
 function loadSavedData() {
@@ -101,11 +106,38 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Game functions
-function updateStars() {
+function getDeltaFrames(currentTime, previousTime) {
+    const deltaMs = previousTime === null
+        ? BASE_FRAME_MS
+        : Math.min(MAX_DELTA_MS, Math.max(0, currentTime - previousTime));
+    return deltaMs / BASE_FRAME_MS;
+}
+
+function startBossEntrance(targetY = 100, speed = 5) {
+    entranceAnimation = {
+        targetY,
+        speed
+    };
+}
+
+function updateBossEntrance(deltaFrames) {
+    if (!entranceAnimation || !currentBoss) return;
+
+    currentBoss.y = Math.min(
+        entranceAnimation.targetY,
+        currentBoss.y + entranceAnimation.speed * deltaFrames
+    );
+
+    if (currentBoss.y >= entranceAnimation.targetY) {
+        entranceAnimation = null;
+    }
+}
+
+function updateStars(deltaFrames) {
     if (!currentBoss?.active) return;
     
     stars.forEach(star => {
-        star.y += star.speed;
+        star.y += star.speed * deltaFrames;
         if (star.y > canvas.height) {
             star.y = 0;
             star.x = Math.random() * canvas.width;
@@ -164,13 +196,13 @@ function checkCollisions() {
     }
 }
 
-function updateDeathParticles() {
+function updateDeathParticles(deltaFrames) {
     deathParticles = deathParticles.filter(p => p.alpha > 0);
     deathParticles.forEach(p => {
-        p.x += Math.cos(p.angle) * p.speed;
-        p.y += Math.sin(p.angle) * p.speed;
-        p.speed *= 0.98;
-        p.alpha -= p.decay;
+        p.x += Math.cos(p.angle) * p.speed * deltaFrames;
+        p.y += Math.sin(p.angle) * p.speed * deltaFrames;
+        p.speed *= Math.pow(0.98, deltaFrames);
+        p.alpha -= p.decay * deltaFrames;
     });
 }
 
@@ -184,21 +216,23 @@ function drawDeathParticles() {
     });
 }
 
-function update() {
+function update(deltaFrames, currentTime) {
     if (!currentBoss?.active) return;
     if (!gameOver) {
-        player.shoot();
-        player.updateBullets();
-        currentBoss.update();
-        updateStars();
+        player.shoot(currentTime);
+        player.updateBullets(deltaFrames);
+        currentBoss.update(deltaFrames);
+        updateBossEntrance(deltaFrames);
+        updateStars(deltaFrames);
         checkCollisions();
     } else {
-        currentBoss.update();
-        updateStars();
-        updateDeathParticles();
+        currentBoss.update(deltaFrames);
+        updateBossEntrance(deltaFrames);
+        updateStars(deltaFrames);
+        updateDeathParticles(deltaFrames);
     }
     
-    pulseValue += 0.05 * pulseDirection;
+    pulseValue += 0.05 * pulseDirection * deltaFrames;
     if (pulseValue >= 1) {
         pulseDirection = -1;
     } else if (pulseValue <= 0) {
@@ -243,6 +277,9 @@ function resetGame() {
     gameStarted = false;
     deathParticles = [];
     fightStartTime = 0;
+    entranceAnimation = null;
+    lastFrameTime = null;
+    lastExplosionFrameTime = null;
     player.reset(canvas);
     currentBoss = null;
 }
@@ -269,13 +306,7 @@ function restartGame() {
     currentBoss.active = true;
     gameStarted = true;
     fightStartTime = Date.now();
-    const bossEntrance = setInterval(() => {
-        if(currentBoss.y < 100) {
-            currentBoss.y += 5;
-        } else {
-            clearInterval(bossEntrance);
-        }
-    }, 16);
+    startBossEntrance();
 }
 
 function createExplosionParticles() {
@@ -313,7 +344,11 @@ function createExplosionParticles() {
     return particles;
 }
 
-function animateExplosion(particles) {
+function animateExplosion(particles, timestamp) {
+    const currentTime = timestamp ?? performance.now();
+    const deltaFrames = getDeltaFrames(currentTime, lastExplosionFrameTime);
+    lastExplosionFrameTime = currentTime;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawStars();
     
@@ -321,10 +356,10 @@ function animateExplosion(particles) {
     particles.forEach(p => {
         if (p.alpha > 0) {
             stillActive = true;
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
-            p.speed *= 0.99;
-            p.alpha -= p.decay;
+            p.x += Math.cos(p.angle) * p.speed * deltaFrames;
+            p.y += Math.sin(p.angle) * p.speed * deltaFrames;
+            p.speed *= Math.pow(0.99, deltaFrames);
+            p.alpha -= p.decay * deltaFrames;
             
             // Draw particle with glow effect
             ctx.beginPath();
@@ -340,8 +375,9 @@ function animateExplosion(particles) {
     });
 
     if (stillActive) {
-        requestAnimationFrame(() => animateExplosion(particles));
+        requestAnimationFrame((nextTimestamp) => animateExplosion(particles, nextTimestamp));
     } else {
+        lastExplosionFrameTime = null;
         if (currentBoss instanceof WaffleBoss && typeof sound !== 'undefined') {
             sound.stop('waffle_theme');
         }
@@ -374,7 +410,7 @@ function animateExplosion(particles) {
             currentBoss.health = currentBoss.maxHealth;
             currentBoss.y = -100;
             currentBoss.active = false;
-            bullets = [];
+            player.bullets = [];
             
             // Update boss tile appearance
             const tile = document.querySelector(`.boss-tile[onclick*="${currentBossType}"]`);
@@ -432,13 +468,7 @@ function selectBoss(bossType) {
                 sound.play('waffle_theme', { loop: true, restart: true });
             }
             fightStartTime = Date.now();
-            const bossEntrance = setInterval(() => {
-                if(currentBoss.y < 100) {
-                    currentBoss.y += 5;
-                } else {
-                    clearInterval(bossEntrance);
-                }
-            }, 16);
+            startBossEntrance();
         }, 1000);
     }
     
@@ -454,20 +484,26 @@ function selectBoss(bossType) {
         }
     }, 1000);
 
+    lastFrameTime = null;
     gameLoop();
 }
 
-function gameLoop() {
+function gameLoop(timestamp) {
+    const currentTime = timestamp ?? performance.now();
+    const deltaFrames = getDeltaFrames(currentTime, lastFrameTime);
+    lastFrameTime = currentTime;
+
     if (!gameOver && currentBoss?.health > 0) {
-        update();
+        update(deltaFrames, currentTime);
         draw();
         loop = requestAnimationFrame(gameLoop);
     } else if (gameOver) {
-        update();
+        update(deltaFrames, currentTime);
         draw();
         loop = requestAnimationFrame(gameLoop);
     } else if (currentBoss?.health <= 0) {
         const particles = createExplosionParticles();
+        lastExplosionFrameTime = null;
         animateExplosion(particles);
     }
 }
