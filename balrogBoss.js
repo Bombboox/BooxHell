@@ -678,32 +678,62 @@ class BalrogBoss extends Boss {
     buildTunnelGuppies() {
         this.tunnelGuppies = [];
         const sliceCount = 70;
-        const spacing = 70;
+        const spacing = 62;
+        const tunnelSpeed = 12.2;
         for (let i = 0; i < sliceCount; i++) {
-            const x = -160 - i * spacing;
+            const edgeDistance = Math.min(i, sliceCount - 1 - i);
+            const edgeBlend = Math.min(1, edgeDistance / 6);
+            const edgeChaos = 1 - edgeBlend;
+            const x = -160 - i * spacing + ((Math.random() - 0.5) * 24);
             const gapCenter = this.canvas.height * 0.52 + Math.sin(i * 0.65) * 120;
             const gapHeight = 240;
+            const gapTop = gapCenter - gapHeight / 2;
+            const gapBottom = gapCenter + gapHeight / 2;
 
-            for (let topY = 40; topY < gapCenter - gapHeight / 2; topY += 46) {
+            for (let topY = 26; topY < gapTop - 8; topY += 22 + Math.random() * 18) {
+                const taperOffset = ((topY / this.canvas.height) - 0.5) * 90 * edgeChaos;
                 this.tunnelGuppies.push({
-                    x,
-                    y: topY,
-                    size: 64,
+                    x: x + taperOffset + ((Math.random() - 0.5) * (30 + edgeChaos * 30)),
+                    y: topY + ((Math.random() - 0.5) * 16),
+                    size: 54 + Math.random() * 34,
                     direction: 1,
-                    speed: 12.2,
+                    speed: tunnelSpeed,
                     dangerous: true
                 });
+
+                if (Math.random() < (0.45 - edgeChaos * 0.15)) {
+                    this.tunnelGuppies.push({
+                        x: x + taperOffset + ((Math.random() - 0.5) * (42 + edgeChaos * 36)),
+                        y: topY + ((Math.random() - 0.5) * 28),
+                        size: 46 + Math.random() * 28,
+                        direction: 1,
+                        speed: tunnelSpeed,
+                        dangerous: true
+                    });
+                }
             }
 
-            for (let bottomY = gapCenter + gapHeight / 2; bottomY < this.canvas.height - 20; bottomY += 46) {
+            for (let bottomY = gapBottom + 8; bottomY < this.canvas.height - 10; bottomY += 22 + Math.random() * 18) {
+                const taperOffset = ((bottomY / this.canvas.height) - 0.5) * 90 * edgeChaos;
                 this.tunnelGuppies.push({
-                    x,
-                    y: bottomY,
-                    size: 64,
+                    x: x + taperOffset + ((Math.random() - 0.5) * (30 + edgeChaos * 30)),
+                    y: bottomY + ((Math.random() - 0.5) * 16),
+                    size: 54 + Math.random() * 34,
                     direction: 1,
-                    speed: 12.2,
+                    speed: tunnelSpeed,
                     dangerous: true
                 });
+
+                if (Math.random() < (0.45 - edgeChaos * 0.15)) {
+                    this.tunnelGuppies.push({
+                        x: x + taperOffset + ((Math.random() - 0.5) * (42 + edgeChaos * 36)),
+                        y: bottomY + ((Math.random() - 0.5) * 28),
+                        size: 46 + Math.random() * 28,
+                        direction: 1,
+                        speed: tunnelSpeed,
+                        dangerous: true
+                    });
+                }
             }
         }
     }
