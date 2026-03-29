@@ -14,6 +14,12 @@ class Boss {
         this.healthShake = 0;
         this.active = false;
         this.bullets = [];
+        this.trailPositions = [];
+        this.maxTrailLength = 0;
+        this.trailOpacityStart = 0.5;
+        this.trailOpacityDecay = 0.05;
+        this.trailUpdateInterval = 2;
+        this.trailFrameCount = 0;
     }
 
     update(deltaFrames = 1) {
@@ -59,6 +65,54 @@ class Boss {
     countIntervalTriggers(previousTimer, currentTimer, interval) {
         if (interval <= 0) return 0;
         return Math.max(0, Math.floor(currentTimer / interval) - Math.floor(previousTimer / interval));
+    }
+
+    createTrailSnapshot() {
+        return {
+            x: this.x,
+            y: this.y,
+            rotation: this.rotation ?? 0
+        };
+    }
+
+    updateRushTrail(deltaFrames = 1) {
+        if (!this.maxTrailLength || !this.trailUpdateInterval) return;
+
+        this.trailFrameCount += deltaFrames;
+        while (this.trailFrameCount >= this.trailUpdateInterval) {
+            this.trailPositions.unshift(this.createTrailSnapshot());
+            if (this.trailPositions.length > this.maxTrailLength) {
+                this.trailPositions.pop();
+            }
+            this.trailFrameCount -= this.trailUpdateInterval;
+        }
+    }
+
+    clearRushTrail() {
+        this.trailPositions = [];
+        this.trailFrameCount = 0;
+    }
+
+    rush(targetX, targetY, speed = this.rushSpeed ?? 0.1, deltaFrames = 1) {
+        const dx = targetX - this.x;
+        const dy = targetY - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        this.updateRushTrail(deltaFrames);
+
+        if (distance > 0.1) {
+            const moveFactor = this.useLinearRush
+                ? speed * deltaFrames
+                : this.getDeltaFactor(speed, deltaFrames);
+            this.x += dx * moveFactor;
+            this.y += dy * moveFactor;
+            return false;
+        }
+
+        this.x = targetX;
+        this.y = targetY;
+        this.clearRushTrail();
+        return true;
     }
 
     drawHealthBar() {
@@ -112,7 +166,19 @@ class Boss {
         this.drawHealthBar();
     }
 
+    drawBackground() {
+        return false;
+    }
+
     drawBoss() {
+        // Override in child class
+    }
+
+    onStart() {
+        // Override in child class
+    }
+
+    onStop() {
         // Override in child class
     }
 

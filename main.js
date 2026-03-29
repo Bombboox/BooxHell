@@ -120,6 +120,10 @@ function startBossEntrance(targetY = 100, speed = 5) {
     };
 }
 
+function shouldUseBossEntrance(boss) {
+    return !(boss instanceof BalrogBoss);
+}
+
 function updateBossEntrance(deltaFrames) {
     if (!entranceAnimation || !currentBoss) return;
 
@@ -242,7 +246,10 @@ function update(deltaFrames, currentTime) {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawStars();
+    const drewCustomBackground = currentBoss?.drawBackground?.() ?? false;
+    if (!drewCustomBackground) {
+        drawStars();
+    }
     if (currentBoss) currentBoss.draw(ctx);
     player.draw(ctx);
     drawDeathParticles();
@@ -266,9 +273,8 @@ function returnToMenu() {
     cancelAnimationFrame(loop);
     bossSelect.style.display = 'grid';
     canvas.style.display = 'none';
-    if (typeof sound !== 'undefined') {
-        sound.stop('waffle_theme');
-    }
+    currentBoss?.onStop?.();
+    if (typeof sound !== 'undefined') sound.stop('waffle_theme');
     resetGame();
 }
 
@@ -300,13 +306,19 @@ function restartGame() {
                 sound.play('waffle_theme', { loop: true, restart: true });
             }
             break;
+        case 'balrogboss':
+            currentBoss = new BalrogBoss(canvas);
+            currentBoss.onStart();
+            break;
         // Add more boss types here
     }
     currentBoss.y = -100;
     currentBoss.active = true;
     gameStarted = true;
     fightStartTime = Date.now();
-    startBossEntrance();
+    if (shouldUseBossEntrance(currentBoss)) {
+        startBossEntrance();
+    }
 }
 
 function createExplosionParticles() {
@@ -350,7 +362,10 @@ function animateExplosion(particles, timestamp) {
     lastExplosionFrameTime = currentTime;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawStars();
+    const drewCustomBackground = currentBoss?.drawBackground?.() ?? false;
+    if (!drewCustomBackground) {
+        drawStars();
+    }
     
     let stillActive = false;
     particles.forEach(p => {
@@ -378,9 +393,8 @@ function animateExplosion(particles, timestamp) {
         requestAnimationFrame((nextTimestamp) => animateExplosion(particles, nextTimestamp));
     } else {
         lastExplosionFrameTime = null;
-        if (currentBoss instanceof WaffleBoss && typeof sound !== 'undefined') {
-            sound.stop('waffle_theme');
-        }
+        currentBoss?.onStop?.();
+        if (currentBoss instanceof WaffleBoss && typeof sound !== 'undefined') sound.stop('waffle_theme');
         const finalTime = Date.now() - fightStartTime;
         const currentBossType = currentBoss.constructor.name.toLowerCase();
         
@@ -437,6 +451,9 @@ function selectBoss(bossType) {
         case 'waffleboss':
             currentBoss = new WaffleBoss(canvas);
             break;
+        case 'balrogboss':
+            currentBoss = new BalrogBoss(canvas);
+            break;
         // Add more boss types here
     }
     
@@ -467,8 +484,11 @@ function selectBoss(bossType) {
                 sound.play('waffle_spawn', { restart: true });
                 sound.play('waffle_theme', { loop: true, restart: true });
             }
+            currentBoss?.onStart?.();
             fightStartTime = Date.now();
-            startBossEntrance();
+            if (shouldUseBossEntrance(currentBoss)) {
+                startBossEntrance();
+            }
         }, 1000);
     }
     

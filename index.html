@@ -83,7 +83,10 @@
             <img src="sprites/waffle.png" alt="Waffle" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 12px rgba(255, 200, 120, 0.7); margin-bottom: 10px;">
             <p>Waffle</p>
         </div>
-        <div class="boss-tile"><p>???</p></div>
+        <div class="boss-tile" onclick="selectBoss('balrogboss')">
+            <div style="width: 80px; height: 80px; background-image: url('sprites/balrog/balrog.png'); background-size: 1000% 200%; background-position: 0 0; image-rendering: pixelated; margin-bottom: 10px;"></div>
+            <p>Balrog</p>
+        </div>
         <div class="boss-tile"><p>???</p></div>
         <div class="boss-tile"><p>???</p></div>
         <div class="boss-tile"><p>???</p></div>
@@ -94,11 +97,13 @@
     <div id="countdown" class="countdown"></div>
     <div id="warning" class="warning">WARNING!</div>
     <canvas id="gameCanvas"></canvas>
+    <script src="spriteSheetAnimation.js"></script>
     <script src="boss.js"></script>
     <script src="player.js"></script>
     <script src="sound.js"></script>
     <script src="redSquareBoss.js"></script>
     <script src="waffleBoss.js"></script>
+    <script src="balrogBoss.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

@@ -6,6 +6,8 @@ class RedSquareBoss extends Boss {
         this.color = 'red';
         this.startingPhase = 0;
         this.currentPhase = this.startingPhase;
+        this.useLinearRush = true;
+        this.logicFrames = 0;
         this.phaseTimer = 0;
         this.rushTarget = {x: 0, y: 0};
         this.rushSpeed = 0.1;
@@ -16,52 +18,17 @@ class RedSquareBoss extends Boss {
         this.rushCount = 0;
         this.playerTargetPos = {x: 100, y: 100};
         // Trail effect properties
-        this.trailPositions = [];
         this.maxTrailLength = 10;
         this.trailOpacityStart = 0.5;
         this.trailOpacityDecay = 0.05;
         this.trailUpdateInterval = 2;
-        this.frameCount = 0;
         this.triangleRushCount = 0;
-        this.phase2ShotTimer = 0;
-        this.phase5NeedsTarget = false;
     }
 
-    rush(targetX, targetY, speed = 0.1, deltaFrames = 1) {
-        const dx = targetX - this.x;
-        const dy = targetY - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        this.frameCount += deltaFrames;
-        while (this.frameCount >= this.trailUpdateInterval) {
-            this.trailPositions.unshift({
-                x: this.x,
-                y: this.y,
-                rotation: this.rotation
-            });
-            if (this.trailPositions.length > this.maxTrailLength) {
-                this.trailPositions.pop();
-            }
-            this.frameCount -= this.trailUpdateInterval;
-        }
-        
-        if (distance > 0.1) {
-            const moveFactor = this.getDeltaFactor(speed, deltaFrames);
-            this.x += dx * moveFactor;
-            this.y += dy * moveFactor;
-            return false;
-        } else {
-            this.x = targetX;
-            this.y = targetY;
-            this.trailPositions = [];
-            return true;
-        }
-    }
-
-    shoot(deltaFrames = 1) {
+    shoot() {
         switch(this.currentPhase) {
             case 0:
-                if (Math.random() < this.getDeltaChance(0.02, deltaFrames)) {
+                if (Math.random() < 0.02) {
                     this.bullets.push({
                         x: this.x,
                         y: this.y + this.height/2,
@@ -74,8 +41,7 @@ class RedSquareBoss extends Boss {
                 break;
                 
             case 2:
-                this.phase2ShotTimer += deltaFrames;
-                while (this.phase2ShotTimer >= 3) {
+                if (this.phaseTimer % 3 === 0) {
                     for (let i = 0; i < 8; i++) {
                         const angle = this.rotation + (i * Math.PI / 4);
                         this.bullets.push({
@@ -87,21 +53,19 @@ class RedSquareBoss extends Boss {
                             type: 'bullet'
                         });
                     }
-                    this.phase2ShotTimer -= 3;
                 }
-                this.rotation += 0.1 * deltaFrames;
+                this.rotation += 0.1;
                 break;
         }
 
         // Update triangles in bullets array
         this.bullets.forEach(proj => {
             if (proj.type === 'triangle') {
-                proj.y += 3 * deltaFrames;
-                proj.rotation += 0.1 * deltaFrames;
+                proj.y += 3;
+                proj.rotation += 0.1;
                 
                 const bulletFrequency = 160;
-                proj.timer += deltaFrames;
-                while (proj.timer >= bulletFrequency) {
+                if (proj.timer % bulletFrequency === 0) {
                     const bulletCount = 24;
                     for (let i = 0; i < bulletCount; i++) {
                         const angle = (i * Math.PI * 2) / bulletCount;
@@ -114,8 +78,8 @@ class RedSquareBoss extends Boss {
                             type: 'bullet'
                         });
                     }
-                    proj.timer -= bulletFrequency;
                 }
+                proj.timer++;
 
                 // Check player collision with triangles
                 const dx = player.x - proj.x;
@@ -163,11 +127,19 @@ class RedSquareBoss extends Boss {
         if (!this.active) return;
 
         this.updateHealthShake(deltaFrames);
-        const previousPhaseTimer = this.phaseTimer;
-        this.phaseTimer += deltaFrames;
+        this.logicFrames += deltaFrames;
+
+        while (this.logicFrames >= 1) {
+            this.updateFrame();
+            this.logicFrames -= 1;
+        }
+    }
+
+    updateFrame() {
+        this.phaseTimer++;
         
-        this.shoot(deltaFrames);
-        this.updateBullets(deltaFrames);
+        this.shoot();
+        this.updateBullets();
 
         // Clean up off-screen projectiles
         this.bullets = this.bullets.filter(proj => {
@@ -182,8 +154,8 @@ class RedSquareBoss extends Boss {
 
         switch(this.currentPhase) {
             case 0:
-                this.move(deltaFrames);
-                this.trailPositions = [];
+                this.move();
+                this.clearRushTrail();
                 if (this.phaseTimer > 300) {
                     this.currentPhase = 1;
                     this.phaseTimer = 0;
@@ -191,13 +163,14 @@ class RedSquareBoss extends Boss {
                 break;
 
             case 1:
-                if (this.rush(this.canvas.width/2, this.y, 0.1, deltaFrames)) {
+                this.rush(this.canvas.width/2, this.y, 0.1);
+                const distToCenter = Math.abs(this.x - this.canvas.width/2);
+                if (distToCenter == 0) {
                     this.x = this.canvas.width/2;
                     this.currentPhase = 2;
                     this.phaseTimer = 0;
                     this.rotation = -Math.PI/2 - Math.PI/4;
-                    this.trailPositions = [];
-                    this.phase2ShotTimer = 0;
+                    this.clearRushTrail();
                 }
                 break;
 
@@ -218,30 +191,38 @@ class RedSquareBoss extends Boss {
                 break;
 
             case 4:
-                if (previousPhaseTimer < 15 && this.phaseTimer >= 15) {
+                if (this.phaseTimer === 15) {
                     this.playerTargetPos = {x: player.x, y: player.y};
                 }
                 if (this.phaseTimer > 15) {
-                    if (this.rush(this.playerTargetPos.x, this.playerTargetPos.y, 0.2, deltaFrames)) {
+                    this.rush(this.playerTargetPos.x, this.playerTargetPos.y, 0.2);
+                    const distToTarget = Math.sqrt(
+                        Math.pow(this.x - this.playerTargetPos.x, 2) + 
+                        Math.pow(this.y - this.playerTargetPos.y, 2)
+                    );
+                    if (distToTarget == 0) {
                         this.rushCount++;
                         this.phaseTimer = 0;
-                        this.trailPositions = [];
+                        this.clearRushTrail();
                         if (this.rushCount >= 3) {
                             this.currentPhase = 5;
                             this.triangleRushCount = 0;
                             this.phaseTimer = -1;
-                            this.phase5NeedsTarget = true;
                         }
                     }
                 }
                 break;
 
             case 5:
-                if (this.phase5NeedsTarget) {
+                if (this.phaseTimer === 0) {
                     this.playerTargetPos = {x: Math.random() * (this.canvas.width - 100) + 50, y: 100};
-                    this.phase5NeedsTarget = false;
                 }
-                if (this.rush(this.playerTargetPos.x, this.playerTargetPos.y, 0.2, deltaFrames)) {
+                this.rush(this.playerTargetPos.x, this.playerTargetPos.y, 0.2);
+                const distToRushPos = Math.sqrt(
+                    Math.pow(this.x - this.playerTargetPos.x, 2) + 
+                    Math.pow(this.y - this.playerTargetPos.y, 2)
+                );
+                if (distToRushPos == 0) {
                     if (this.phaseTimer > 0) { // Only shoot after completing rush
                         this.bullets.push({
                             x: this.x,
@@ -256,10 +237,7 @@ class RedSquareBoss extends Boss {
                             this.phaseTimer = 0;
                         }
                     }
-                    if (this.currentPhase === 5) {
-                        this.phaseTimer = -1;
-                        this.phase5NeedsTarget = true;
-                    }
+                    this.phaseTimer = -1;
                 }
                 break;
 
@@ -274,23 +252,25 @@ class RedSquareBoss extends Boss {
                     return;
                 }
 
-                if (this.rush(this.canvas.width/2, this.canvas.height/2, 0.1, deltaFrames)) {
+                this.rush(this.canvas.width/2, this.canvas.height/2, 0.1);
+                const distToCenterForLaser = Math.sqrt((this.x - this.canvas.width/2)**2 + (this.x - this.canvas.width/2)**2);
+                if (distToCenterForLaser == 0) {
                     this.x = this.canvas.width/2;
                     this.currentPhase = 7;
                     this.phaseTimer = 0;
                     this.laserWarning = true;
-                    this.trailPositions = [];
+                    this.clearRushTrail();
                 }
                 break;
 
             case 7:
-                if (previousPhaseTimer < 60 && this.phaseTimer >= 60) {
+                if (this.phaseTimer === 60) {
                     this.laserWarning = false;
                     this.firingLaser = true;
                 }
                 if (this.firingLaser) {
-                    this.rotationSpeed += 0.0005 * deltaFrames;
-                    this.rotation += this.rotationSpeed * deltaFrames;
+                    this.rotationSpeed += 0.0005;
+                    this.rotation += this.rotationSpeed;
                 }
 
                 if (this.phaseTimer > 480) {
@@ -302,12 +282,14 @@ class RedSquareBoss extends Boss {
                 break;
 
             case 8:
-                if (this.rush(this.canvas.width/2, 100, 0.1, deltaFrames)) {
+                this.rush(this.canvas.width/2, 100, 0.1);
+                const distToTop = Math.abs(this.y - 100);
+                if (distToTop == 0) {
                     this.y = 100;
                     this.currentPhase = 0;
                     this.phaseTimer = 0;
                     this.rotation = 0;
-                    this.trailPositions = [];
+                    this.clearRushTrail();
                 }
                 break;
         }

@@ -32,6 +32,10 @@ class WaffleBoss extends Boss {
 
         this.glowTime = 0;
         this.auraBursts = [];
+        this.maxTrailLength = 10;
+        this.trailOpacityStart = 0.35;
+        this.trailOpacityDecay = 0.03;
+        this.trailUpdateInterval = 2;
 
         this.comets = [];
         this.cometSpawnInterval = 4;
@@ -72,23 +76,6 @@ class WaffleBoss extends Boss {
         this.x += this.speed * this.direction * deltaFrames;
         if (this.x + this.radius > this.canvas.width || this.x - this.radius < 0) {
             this.direction *= -1;
-        }
-    }
-
-    rush(targetX, targetY, speed = this.rushSpeed, deltaFrames = 1) {
-        const dx = targetX - this.x;
-        const dy = targetY - this.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance > 0.5) {
-            const moveFactor = this.getDeltaFactor(speed, deltaFrames);
-            this.x += dx * moveFactor;
-            this.y += dy * moveFactor;
-            return false;
-        } else {
-            this.x = targetX;
-            this.y = targetY;
-            return true;
         }
     }
 
@@ -376,6 +363,7 @@ class WaffleBoss extends Boss {
 
         switch (this.phase) {
             case 0:
+                this.clearRushTrail();
                 this.rotation = Math.PI / 2;
                 this.x += this.speed * 1.8 * this.direction * deltaFrames;
                 this.y = 100 + Math.sin(this.phaseTimer * 0.08) * 25;
@@ -405,6 +393,7 @@ class WaffleBoss extends Boss {
                 }
                 break;
             case 2:
+                this.clearRushTrail();
                 this.updateLaserCycle(deltaFrames);
                 for (let i = 0; i < this.countIntervalTriggers(previousPhaseTimer, this.phaseTimer, this.sideDroneSpawnInterval); i++) {
                     this.spawnDroneFromRight();
@@ -437,6 +426,7 @@ class WaffleBoss extends Boss {
                 }
                 break;
             case 4:
+                this.clearRushTrail();
                 for (let i = 0; i < this.countIntervalTriggers(previousPhaseTimer, this.phaseTimer, this.explosionSpawnInterval); i++) {
                     this.spawnExplosion();
                 }
@@ -474,6 +464,26 @@ class WaffleBoss extends Boss {
         const shakeY = this.phase === 0 ? (Math.random() - 0.5) * 20 : 0;
         const drawX = this.x + shakeX;
         const drawY = this.y + shakeY;
+
+        this.trailPositions.forEach((pos, index) => {
+            const opacity = this.trailOpacityStart - (index * this.trailOpacityDecay);
+            if (opacity <= 0) return;
+
+            ctx.save();
+            ctx.globalAlpha = opacity;
+            ctx.translate(pos.x, pos.y);
+            ctx.rotate(pos.rotation);
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.clip();
+            if (this.sprite.complete && this.sprite.naturalWidth > 0) {
+                ctx.drawImage(this.sprite, -this.radius, -this.radius, this.radius * 2, this.radius * 2);
+            } else {
+                ctx.fillStyle = '#f4b85f';
+                ctx.fillRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
+            }
+            ctx.restore();
+        });
 
         this.auraBursts.forEach(burst => {
             ctx.beginPath();

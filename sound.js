@@ -66,5 +66,16 @@ sound.add('waffle_laser', 'sounds/waffle/laser.mp3', { volume: 0.1 });
 sound.add('waffle_explosion', 'sounds/waffle/explosion.mp3', { volume: 0.35 });
 sound.add('waffle_yell_1', 'sounds/waffle/yell_1.mp3', { volume: 0.5 });
 sound.add('waffle_yell_2', 'sounds/waffle/yell_2.mp3', { volume: 0.5 });
+sound.add('balrog_unleash', 'sounds/balrog/unleash.ogg', { volume: 0.45 });
+sound.add('balrog_throw', 'sounds/balrog/throw.ogg', { volume: 0.35 });
+sound.add('balrog_roar', 'sounds/balrog/roar.ogg', { volume: 0.5 });
+sound.add('balrog_roar_2', 'sounds/balrog/roar2.ogg', { volume: 0.5 });
+sound.add('balrog_evillaff', 'sounds/balrog/evillaff.ogg', { volume: 0.5 });
+sound.add('balrog_grow', 'sounds/balrog/grow.wav', { volume: 0.3 });
+sound.add('balrog_theme', 'sounds/balrog/balrog_theme.wav', { loop: true, volume: 0.5 });
+sound.add('balrog_chomp', 'sounds/balrog/chomp.wav', { volume: 0.3 });
+sound.add('balrog_buzzer', 'sounds/balrog/buzzer.ogg', { volume: 0.25 });
+sound.add('balrog_clamopen', 'sounds/balrog/clamopen.ogg', { volume: 0.35 });
+sound.add('balrog_pearlfire', 'sounds/balrog/pearlfire.ogg', { volume: 0.28 });
 
 window.sound = sound;
