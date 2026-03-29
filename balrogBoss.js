@@ -399,7 +399,7 @@ class BalrogBoss extends Boss {
         this.clearRushTrail();
         this.phaseData = {
             dashIndex: 0,
-            dashTotal: 4,
+            dashTotal: 3,
             state: 'spawn',
             cooldown: 24,
             rush: null
