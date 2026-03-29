@@ -1870,16 +1870,6 @@ class BalrogBoss extends Boss {
             )
         );
 
-        let tunnelBoundsCollision = false;
-        if (this.phase === 'school' && this.phaseData.state === 'tunnel') {
-            if ((this.phaseData.tunnelGraceTimer ?? 0) <= 0) {
-                const bounds = this.getTunnelBounds(player.x);
-                if (bounds) {
-                    tunnelBoundsCollision = player.y - player.radius < bounds.top || player.y + player.radius > bounds.bottom;
-                }
-            }
-        }
-
         return directCollision ||
             ballCollision ||
             schoolCollision ||
@@ -1888,7 +1878,6 @@ class BalrogBoss extends Boss {
             clamCollision ||
             pearlCollision ||
             sylvesterCollision ||
-            jumperCollision ||
-            tunnelBoundsCollision;
+            jumperCollision;
     }
 }
