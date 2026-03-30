@@ -501,7 +501,7 @@ class BalrogBoss extends Boss {
     }
 
     spawnBouncingBallVolley(originX = this.x, originY = this.y - 12, soundKey = 'balrog_throw') {
-        const count = 1 + Math.floor(Math.random() * 2);
+        const count = 2 + Math.floor(Math.random() * 2);
         const shuffledRows = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
 
         for (let i = 0; i < count; i++) {
@@ -509,7 +509,7 @@ class BalrogBoss extends Boss {
             const angle = (-Math.PI / 2) + ((Math.random() - 0.5) * 0.9);
             const speed = 8.5 + Math.random() * 2.5;
             this.bouncingBalls.push(this.createBallProjectile(originX, originY, angle, speed, row));
-            this.bouncingBalls[this.bouncingBalls.length - 1].vx = (Math.random() - 0.5) * (6 + Math.random() * 4);
+            this.bouncingBalls[this.bouncingBalls.length - 1].vx = (Math.random() - 0.5) * (10 + Math.random() * 6);
             this.bouncingBalls[this.bouncingBalls.length - 1].vy = -(8 + Math.random() * 4);
         }
 
@@ -576,7 +576,7 @@ class BalrogBoss extends Boss {
             const arrived = this.rush(
                 this.phaseData.enterTargetX,
                 this.phaseData.enterTargetY,
-                0.09,
+                0.18,
                 deltaFrames
             );
 
@@ -661,7 +661,7 @@ class BalrogBoss extends Boss {
             x: spawnX,
             y: 36 + Math.random() * (this.canvas.height - 72),
             baseY: 36 + Math.random() * (this.canvas.height - 72),
-            speed: 2.4 + Math.random() * 1.6,
+            speed: 4.8 + Math.random() * 3.2,
             direction: -1,
             size: 72 + Math.random() * 72,
             bobOffset: Math.random() * Math.PI * 2,
@@ -679,7 +679,7 @@ class BalrogBoss extends Boss {
         this.tunnelGuppies = [];
         const sliceCount = 70;
         const spacing = 62;
-        const tunnelSpeed = 12.2;
+        const tunnelSpeed = 18.3;
         for (let i = 0; i < sliceCount; i++) {
             const edgeDistance = Math.min(i, sliceCount - 1 - i);
             const edgeBlend = Math.min(1, edgeDistance / 6);
@@ -883,7 +883,7 @@ class BalrogBoss extends Boss {
             arenaOffsetX: 0,
             arenaOffsetY: 0,
             releaseTimer: 32,
-            jumperTimer: 30,
+            jumperTimer: 26,
             loopDelayTimer: 270,
             curveStart,
             enterStart: null,
@@ -1115,9 +1115,9 @@ class BalrogBoss extends Boss {
                 this.phaseData.pearlTimer += nextDelay;
             }
 
-            while (this.phaseData.sylvesterSpawnTimer <= 0 && this.sylvesters.length < 3) {
+            while (this.phaseData.sylvesterSpawnTimer <= 0 && this.sylvesters.length < 4) {
                 this.spawnSylvester();
-                this.phaseData.sylvesterSpawnTimer += 70;
+                this.phaseData.sylvesterSpawnTimer += 52;
             }
 
             if (this.phaseData.pearlDuration <= 0) {
@@ -1252,7 +1252,7 @@ class BalrogBoss extends Boss {
 
             if (this.phaseData.jumperTimer <= 0) {
                 this.spawnJumper();
-                this.phaseData.jumperTimer = 34;
+                this.phaseData.jumperTimer = 30;
             }
 
             if (this.phaseData.arenaTimer >= 360) {
