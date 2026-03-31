@@ -3,8 +3,29 @@ const ctx = canvas.getContext('2d');
 const bossSelect = document.getElementById('bossSelect');
 const countdownEl = document.getElementById('countdown');
 const warningEl = document.getElementById('warning');
+const homeButtons = document.getElementById('homeButtons');
+const bossSelectScreen = document.getElementById('bossSelectScreen');
+const controlsScreen = document.getElementById('controlsScreen');
+const optionsScreen = document.getElementById('optionsScreen');
+const angelMessageEl = document.getElementById('angelMessage');
+const angelParticlesEl = document.getElementById('angelParticles');
+const musicSlider = document.getElementById('musicSlider');
+const musicValue = document.getElementById('musicValue');
+const sfxSlider = document.getElementById('sfxSlider');
+const sfxValue = document.getElementById('sfxValue');
+const reducedMotionToggle = document.getElementById('reducedMotionToggle');
 const BASE_FRAME_MS = 1000 / 60;
 const MAX_DELTA_MS = 100;
+const MUSIC_VOLUME_STORAGE_KEY = 'booxhellMusicVolume';
+const SFX_VOLUME_STORAGE_KEY = 'booxhellSfxVolume';
+const REDUCED_MOTION_STORAGE_KEY = 'booxhellReducedMotion';
+const angelMessages = [
+    'Welcome To Hell',
+    'Choose Your Suffering',
+    'The Pit Is Waiting',
+    'Try Not To Die',
+    'Only The Damned Click Play'
+];
 
 // Set canvas to full window size
 canvas.width = window.innerWidth;
@@ -38,6 +59,125 @@ let entranceAnimation = null;
 let lastFrameTime = null;
 let lastExplosionFrameTime = null;
 
+function setMenuScreen(screen) {
+    homeButtons.style.display = screen === 'home' ? 'grid' : 'none';
+    bossSelectScreen.classList.toggle('active', screen === 'boss-select');
+    controlsScreen.classList.toggle('active', screen === 'controls');
+    optionsScreen.classList.toggle('active', screen === 'options');
+
+    if (screen === 'home') {
+        refreshAngelMessage();
+    } else if (screen === 'boss-select') {
+        refreshBossSelectTiles();
+    }
+}
+
+function showMainMenu() {
+    setMenuScreen('home');
+}
+
+function openBossSelectMenu() {
+    setMenuScreen('boss-select');
+}
+
+function openControlsMenu() {
+    setMenuScreen('controls');
+}
+
+function openOptionsMenu() {
+    setMenuScreen('options');
+}
+
+function refreshAngelMessage() {
+    if (!angelMessageEl) return;
+    const message = angelMessages[Math.floor(Math.random() * angelMessages.length)];
+    angelMessageEl.textContent = message;
+}
+
+function createAngelParticles() {
+    if (!angelParticlesEl || angelParticlesEl.childElementCount > 0) return;
+
+    for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('span');
+        particle.className = 'angel-particle';
+        particle.style.setProperty('--size', `${Math.random() * 6 + 4}px`);
+        particle.style.setProperty('--left', `${Math.random() * 58 + 6}%`);
+        particle.style.setProperty('--top', `${Math.random() * 74 + 6}%`);
+        particle.style.setProperty('--duration', `${Math.random() * 3 + 3.2}s`);
+        particle.style.setProperty('--delay', `${Math.random() * -5}s`);
+        angelParticlesEl.appendChild(particle);
+    }
+}
+
+function applyMusicVolume(volume) {
+    const clampedVolume = Math.min(1, Math.max(0, volume));
+    if (typeof sound !== 'undefined') {
+        sound.setMusicVolume(clampedVolume);
+    }
+    if (musicSlider) musicSlider.value = String(Math.round(clampedVolume * 100));
+    if (musicValue) musicValue.textContent = `${Math.round(clampedVolume * 100)}%`;
+    localStorage.setItem(MUSIC_VOLUME_STORAGE_KEY, String(clampedVolume));
+}
+
+function applySfxVolume(volume) {
+    const clampedVolume = Math.min(1, Math.max(0, volume));
+    if (typeof sound !== 'undefined') {
+        sound.setSfxVolume(clampedVolume);
+    }
+    if (sfxSlider) sfxSlider.value = String(Math.round(clampedVolume * 100));
+    if (sfxValue) sfxValue.textContent = `${Math.round(clampedVolume * 100)}%`;
+    localStorage.setItem(SFX_VOLUME_STORAGE_KEY, String(clampedVolume));
+}
+
+function applyReducedMotion(enabled) {
+    document.body.classList.toggle('reduced-motion', enabled);
+    if (reducedMotionToggle) {
+        reducedMotionToggle.checked = enabled;
+    }
+    localStorage.setItem(REDUCED_MOTION_STORAGE_KEY, String(enabled));
+}
+
+function loadOptionPreferences() {
+    const storedMusic = Number(localStorage.getItem(MUSIC_VOLUME_STORAGE_KEY));
+    const storedSfx = Number(localStorage.getItem(SFX_VOLUME_STORAGE_KEY));
+    const storedReducedMotion = localStorage.getItem(REDUCED_MOTION_STORAGE_KEY) === 'true';
+
+    applyMusicVolume(Number.isFinite(storedMusic) ? storedMusic : 0.7);
+    applySfxVolume(Number.isFinite(storedSfx) ? storedSfx : 1);
+    applyReducedMotion(storedReducedMotion);
+}
+
+function getBossTile(bossType) {
+    return document.querySelector(`.boss-tile[data-boss="${bossType}"]`);
+}
+
+function updateBossTileState(bossType) {
+    const tile = getBossTile(bossType);
+    if (!tile) return;
+
+    const recordEl = tile.querySelector('[data-role="record"]');
+    const defeated = Boolean(defeatedBosses[bossType]);
+    const bestTime = bestTimes[bossType];
+
+    tile.classList.toggle('is-cleared', defeated);
+
+    if (recordEl) {
+        if (defeated && bestTime) {
+            recordEl.textContent = `Best: ${formatTime(bestTime)}`;
+            recordEl.classList.remove('is-hidden');
+        } else {
+            recordEl.textContent = 'Best: --:--.--';
+            recordEl.classList.add('is-hidden');
+        }
+    }
+}
+
+function refreshBossSelectTiles() {
+    document.querySelectorAll('.boss-tile[data-boss]').forEach((tile) => {
+        updateBossTileState(tile.dataset.boss);
+    });
+}
+
 // Load saved data from cookies
 function loadSavedData() {
     const timeCookie = document.cookie.split('; ').find(row => row.startsWith('bestTimes='));
@@ -48,22 +188,9 @@ function loadSavedData() {
     }
     if (defeatCookie) {
         defeatedBosses = JSON.parse(decodeURIComponent(defeatCookie.split('=')[1]));
-        
-        // Update boss tiles appearance
-        for (const boss in defeatedBosses) {
-            if (defeatedBosses[boss]) {
-                const tile = document.querySelector(`.boss-tile[onclick="selectBoss('${boss}')"]`);
-                console.log(`.boss-tile[onclick="selectBoss('${boss}')"]`)
-
-                if (tile) {
-                    tile.style.backgroundColor = '#4a9c4a'; // Green background for defeated bosses
-                    const timeText = document.createElement('p');
-                    timeText.textContent = `Best: ${formatTime(bestTimes[boss] || 0)}`;
-                    tile.appendChild(timeText);
-                }
-            }
-        }
     }
+
+    refreshBossSelectTiles();
 }
 
 function saveCookie(name, value) {
@@ -271,11 +398,15 @@ function draw() {
 
 function returnToMenu() {
     cancelAnimationFrame(loop);
-    bossSelect.style.display = 'grid';
+    bossSelect.style.display = 'flex';
     canvas.style.display = 'none';
     currentBoss?.onStop?.();
-    if (typeof sound !== 'undefined') sound.stop('waffle_theme');
+    if (typeof sound !== 'undefined') {
+        sound.stop('waffle_theme');
+        sound.stop('balrog_theme');
+    }
     resetGame();
+    showMainMenu();
 }
 
 function resetGame() {
@@ -394,7 +525,10 @@ function animateExplosion(particles, timestamp) {
     } else {
         lastExplosionFrameTime = null;
         currentBoss?.onStop?.();
-        if (currentBoss instanceof WaffleBoss && typeof sound !== 'undefined') sound.stop('waffle_theme');
+        if (typeof sound !== 'undefined') {
+            if (currentBoss instanceof WaffleBoss) sound.stop('waffle_theme');
+            if (currentBoss instanceof BalrogBoss) sound.stop('balrog_theme');
+        }
         const finalTime = Date.now() - fightStartTime;
         const currentBossType = currentBoss.constructor.name.toLowerCase();
         
@@ -418,22 +552,15 @@ function animateExplosion(particles, timestamp) {
         ctx.fillText(`Best: ${formatTime(bestTimes[currentBossType])}`, canvas.width/2, canvas.height/2 + 90);
         
         setTimeout(() => {
-            bossSelect.style.display = 'grid';
+            bossSelect.style.display = 'flex';
             canvas.style.display = 'none';
             gameStarted = false;
             currentBoss.health = currentBoss.maxHealth;
             currentBoss.y = -100;
             currentBoss.active = false;
             player.bullets = [];
-            
-            // Update boss tile appearance
-            const tile = document.querySelector(`.boss-tile[onclick*="${currentBossType}"]`);
-            if (tile) {
-                tile.style.backgroundColor = '#4a9c4a';
-                const timeText = tile.querySelector('p:last-child') || document.createElement('p');
-                timeText.textContent = `Best: ${formatTime(bestTimes[currentBossType])}`;
-                tile.appendChild(timeText);
-            }
+            updateBossTileState(currentBossType);
+            showMainMenu();
         }, 5000);
     }
 }
@@ -530,4 +657,28 @@ function gameLoop(timestamp) {
 
 // Initially hide the canvas and load saved data
 canvas.style.display = 'none';
+window.showMainMenu = showMainMenu;
+window.openBossSelectMenu = openBossSelectMenu;
+window.openControlsMenu = openControlsMenu;
+window.openOptionsMenu = openOptionsMenu;
+
+createAngelParticles();
+loadOptionPreferences();
+refreshAngelMessage();
+if (musicSlider) {
+    musicSlider.addEventListener('input', (event) => {
+        applyMusicVolume(Number(event.target.value) / 100);
+    });
+}
+if (sfxSlider) {
+    sfxSlider.addEventListener('input', (event) => {
+        applySfxVolume(Number(event.target.value) / 100);
+    });
+}
+if (reducedMotionToggle) {
+    reducedMotionToggle.addEventListener('change', (event) => {
+        applyReducedMotion(event.target.checked);
+    });
+}
 loadSavedData();
+showMainMenu();

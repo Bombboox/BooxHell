@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boox's Hell</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            background: linear-gradient(180deg, #000000 0%, #212121 100%);
+        }
+
+        .button {
+            visibility: hidden;
+        }
+
+        .Button_Display {
+            inset: 0;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .Start_Button {
+            background-image: url('./sprites/Menu/Start.png');
+        }
+        .Controls_Button {
+            background-image: url('./sprites/Menu/Controls.png');
+        }
+        .Options_Button {
+            background-image: url('./sprites/Menu/Options.png');
+        }
+
+        .menu {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .menu-stage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: min(100vw, calc(100vh * 16 / 9));
+            aspect-ratio: 16 / 9;
+            transform: translate(-50%, -50%);
+            background-image: url('./sprites/Menu/Menu.png');
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+        }
+
+        .angel {
+            position: absolute;
+            inset: 0;
+            background-image: url('./sprites/Menu/Angel.png');
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.45))
+                drop-shadow(0 0 36px rgba(255, 245, 220, 0.35));
+        }
+
+        .angel-scene {
+            position: absolute;
+            top: -20%;
+            left: 0%;
+            width: 40%;
+            height: 150%;
+            animation: angelBob 5.5s ease-in-out infinite;
+            transform-origin: center bottom;
+            pointer-events: none;
+        }
+
+        .angel-scene::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 12%;
+            width: 44%;
+            height: 20%;
+            transform: translateX(-50%);
+            background: radial-gradient(ellipse at center,
+                rgba(255, 255, 255, 0.42) 0%,
+                rgba(255, 245, 210, 0.22) 35%,
+                rgba(255, 255, 255, 0) 75%);
+            filter: blur(12px);
+            animation: auraPulse 4.8s ease-in-out infinite;
+        }
+
+        .angel-particle {
+            position: absolute;
+            bottom: 20%;
+            left: 42%;
+            width: 0.8vw;
+            height: 0.8vw;
+            min-width: 6px;
+            min-height: 6px;
+            border-radius: 50%;
+            background: radial-gradient(circle,
+                rgba(255, 255, 255, 1) 0%,
+                rgba(255, 255, 255, 0.85) 35%,
+                rgba(255, 255, 255, 0) 75%);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.75);
+            opacity: 0;
+            animation: angelParticle 6s linear infinite;
+        }
+
+        .angel-particle:nth-child(2) {
+            left: 34%;
+            bottom: 26%;
+            animation-delay: -0.8s;
+            animation-duration: 5.3s;
+        }
+
+        .angel-particle:nth-child(3) {
+            left: 47%;
+            bottom: 18%;
+            animation-delay: -2.1s;
+            animation-duration: 6.2s;
+        }
+
+        .angel-particle:nth-child(4) {
+            left: 30%;
+            bottom: 34%;
+            animation-delay: -3.3s;
+            animation-duration: 5.8s;
+        }
+
+        .angel-particle:nth-child(5) {
+            left: 51%;
+            bottom: 30%;
+            animation-delay: -1.7s;
+            animation-duration: 6.5s;
+        }
+
+        .angel-particle:nth-child(6) {
+            left: 38%;
+            bottom: 12%;
+            animation-delay: -4.4s;
+            animation-duration: 5.1s;
+        }
+
+        .angel-particle:nth-child(7) {
+            left: 44%;
+            bottom: 40%;
+            animation-delay: -2.9s;
+            animation-duration: 6.8s;
+        }
+
+        @keyframes angelBob {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-18px);
+            }
+        }
+
+        @keyframes auraPulse {
+            0%, 100% {
+                opacity: 0.45;
+                transform: translateX(-50%) scale(1);
+            }
+            50% {
+                opacity: 0.75;
+                transform: translateX(-50%) scale(1.08);
+            }
+        }
+
+        @keyframes angelParticle {
+            0% {
+                opacity: 0;
+                transform: translate3d(0, 10px, 0) scale(0.5);
+            }
+            15% {
+                opacity: 0.95;
+            }
+            100% {
+                opacity: 0;
+                transform: translate3d(28px, -170px, 0) scale(1.25);
+            }
+        }
+
+        .buttons {
+            position: absolute;
+            inset: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu">
+        <div class="menu-stage">
+            <div class="angel-scene">
+                <div class="angel"></div>
+                <span class="angel-particle"></span>
+                <span class="angel-particle"></span>
+                <span class="angel-particle"></span>
+                <span class="angel-particle"></span>
+                <span class="angel-particle"></span>
+                <span class="angel-particle"></span>
+            </div>
+            <div class="buttons">
+                <div class="Start_Button Button_Display"></div>
+                <div class="Controls_Button Button_Display"></div>
+                <div class="Options_Button Button_Display"></div>
+
+                <!-- Start Button -->
+                <svg class="button-hitbox" viewBox="0 0 100 100" preserveAspectRatio="none"
+                    style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;">
+                    <polygon points="60,24.44 94.375,45.56 93.75,54.44 59.375,32.22"
+                        fill="#ffffff"
+                        fill-opacity="0"
+                        pointer-events="all"
+                        style="cursor:pointer;"
+                        onmouseenter="setButtonHover('Start', true)"
+                        onmouseleave="setButtonHover('Start', false)"
+                        onclick="startGame()" />
+                </svg>
+
+                <!-- Controls Button -->
+                <svg class="button-hitbox" viewBox="0 0 100 100" preserveAspectRatio="none"
+                    style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;">
+                    <polygon points="59.375,38.89 93.75,58.89 93.125,67.78 59.375,45.11"
+                        fill="#ffffff"
+                        fill-opacity="0"
+                        pointer-events="all"
+                        style="cursor:pointer;"
+                        onmouseenter="setButtonHover('Controls', true)"
+                        onmouseleave="setButtonHover('Controls', false)"
+                        onclick="showControls()" />
+                </svg>
+
+                <!-- Options Button -->
+                <svg class="button-hitbox" viewBox="0 0 100 100" preserveAspectRatio="none"
+                    style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;">
+                    <polygon points="58.75,51.11 92.5,72.22 92.1875,80 58.125,58.33"
+                        fill="#ffffff"
+                        fill-opacity="0"
+                        pointer-events="all"
+                        style="cursor:pointer;"
+                        onmouseenter="setButtonHover('Options', true)"
+                        onmouseleave="setButtonHover('Options', false)"
+                        onclick="showOptions()" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setButtonHover(buttonName, isHovering) {
+            const button = document.querySelector('.' + buttonName + '_Button');
+            if (!button) return;
+
+            const suffix = isHovering ? '_Hover' : '';
+            button.style.backgroundImage = "url('./sprites/Menu/" + buttonName + suffix + ".png')";
+        }
+    </script>
+</body>
+</html>

@@ -1,102 +1,719 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Space Shooter</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boox's Hell</title>
     <style>
-        canvas {
-            display: block;
-            margin: 0 auto;
-            background: black;
-        }
-        body {
+        * {
+            box-sizing: border-box;
             margin: 0;
-            overflow: hidden;
-            user-select: none;
+            padding: 0;
         }
-        .boss-select {
-            position: absolute;
+
+        html, body {
             width: 100%;
             height: 100%;
-            display: grid;
-            grid-template-columns: repeat(3, 150px);
-            grid-template-rows: repeat(3, 150px);
-            gap: 20px;
-            justify-content: center;
-            align-content: center;
-            background: black;
+            overflow: hidden;
+        }
+
+        body {
+            background: linear-gradient(180deg, #000000 0%, #1f1f1f 100%);
+            color: #f5f1e8;
+            font-family: Georgia, "Times New Roman", serif;
             user-select: none;
         }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+        }
+
+        #bossSelect {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, rgba(255, 255, 255, 0.07), transparent 35%),
+                linear-gradient(180deg, #050505 0%, #171717 65%, #0d0d0d 100%);
+            z-index: 10;
+        }
+
+        .menu {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .menu-stage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: min(100vw, calc(100vh * 16 / 9));
+            aspect-ratio: 16 / 9;
+            transform: translate(-50%, -50%);
+            background-image: url("./sprites/Menu/Menu.png");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+            overflow: hidden;
+        }
+
+        .angel-scene {
+            position: absolute;
+            top: -20%;
+            left: 0;
+            width: 40%;
+            height: 150%;
+            animation: angelBob 5.5s ease-in-out infinite;
+            transform-origin: center bottom;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .angel {
+            position: absolute;
+            inset: 0;
+            background-image: url("./sprites/Menu/Angel.png");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.45))
+                drop-shadow(0 0 36px rgba(255, 245, 220, 0.35));
+        }
+
+        .angel-scene::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: 12%;
+            width: 44%;
+            height: 20%;
+            transform: translateX(-50%);
+            background: radial-gradient(ellipse at center,
+                rgba(255, 255, 255, 0.42) 0%,
+                rgba(255, 245, 210, 0.22) 35%,
+                rgba(255, 255, 255, 0) 75%);
+            filter: blur(12px);
+            animation: auraPulse 4.8s ease-in-out infinite;
+        }
+
+        #angelParticles {
+            position: absolute;
+            inset: 0;
+        }
+
+        #angelParticles .angel-particle {
+            position: absolute;
+            top: var(--top);
+            left: var(--left);
+            width: var(--size);
+            height: var(--size);
+            border-radius: 50%;
+            background: radial-gradient(circle,
+                rgba(255, 255, 255, 1) 0%,
+                rgba(255, 255, 255, 0.88) 35%,
+                rgba(255, 255, 255, 0) 75%);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+            opacity: 0;
+            animation: angelParticle var(--duration) linear infinite;
+            animation-delay: var(--delay);
+        }
+
+        .screen {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #homeButtons {
+            display: grid;
+        }
+
+        .Button_Display {
+            position: absolute;
+            inset: 0;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            pointer-events: none;
+        }
+
+        .Start_Button {
+            background-image: url("./sprites/Menu/Start.png");
+        }
+
+        .Controls_Button {
+            background-image: url("./sprites/Menu/Controls.png");
+        }
+
+        .Options_Button {
+            background-image: url("./sprites/Menu/Options.png");
+        }
+
+        .menu-button-layer,
+        .menu-hitboxes {
+            position: absolute;
+            inset: 0;
+        }
+
+        .menu-hitboxes svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .menu-hitboxes polygon {
+            fill: #ffffff;
+            fill-opacity: 0;
+            pointer-events: all;
+            cursor: pointer;
+        }
+
+        .screen-view {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            background:
+                linear-gradient(90deg, rgba(8, 8, 8, 0) 0%, rgba(8, 8, 8, 0.18) 20%, rgba(8, 8, 8, 0.72) 38%, rgba(8, 8, 8, 0.9) 100%);
+            display: flex;
+            align-items: stretch;
+            justify-content: flex-end;
+            padding: 2.5rem 3rem 2.25rem 34%;
+        }
+
+        .screen-card {
+            width: min(100%, 58rem);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem 2.2rem;
+            border: 1px solid rgba(255, 241, 214, 0.14);
+            border-radius: 30px;
+            background: linear-gradient(180deg, rgba(22, 18, 15, 0.72) 0%, rgba(9, 8, 8, 0.84) 100%);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), inset 0 0 40px rgba(255, 247, 230, 0.03);
+            backdrop-filter: blur(6px);
+        }
+
+        .screen-card h2 {
+            margin-bottom: 0.6rem;
+            color: #fff2d9;
+            font-size: clamp(26px, 2.4vw, 42px);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .panel-lead {
+            margin-bottom: 1.8rem;
+            color: rgba(245, 235, 216, 0.78);
+            font-size: clamp(14px, 1vw, 18px);
+            line-height: 1.6;
+        }
+
+        .boss-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
         .boss-tile {
-            border: 2px solid #444;
+            min-height: 9.5rem;
+            border: 1px solid rgba(255, 238, 210, 0.16);
+            border-radius: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 0.55rem;
+            padding: 1rem 0.8rem;
             cursor: pointer;
-            transition: all 0.3s;
-            background: rgba(50, 50, 50, 0.5);
+            background: linear-gradient(180deg, rgba(62, 43, 32, 0.45) 0%, rgba(21, 17, 15, 0.9) 100%);
+            transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+            text-align: center;
         }
+
         .boss-tile:hover {
-            border-color: white;
-            background: rgba(100, 100, 100, 0.5);
+            transform: translateY(-4px);
+            border-color: rgba(255, 244, 220, 0.65);
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
         }
-        .boss-tile p {
-            color: white;
-            margin: 0;
-            font-family: Arial;
-            font-size: 14px;
-            user-select: none;
+
+        .boss-tile.is-cleared {
+            border-color: rgba(255, 233, 164, 0.75);
+            box-shadow: inset 0 0 0 1px rgba(255, 233, 164, 0.25);
         }
-        .countdown {
+
+        .boss-tile.is-locked {
+            cursor: default;
+            opacity: 0.6;
+        }
+
+        .boss-name {
+            font-size: 1rem;
+            color: #fff5e6;
+            letter-spacing: 0.05em;
+        }
+
+        .boss-record {
+            color: rgba(255, 236, 190, 0.75);
+            font-size: 0.8rem;
+        }
+
+        .boss-record.is-hidden {
+            visibility: hidden;
+        }
+
+        .control-list,
+        .option-stack {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .control-row,
+        .option-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.95rem 1rem;
+            border-radius: 16px;
+            background: rgba(255, 248, 235, 0.05);
+            border: 1px solid rgba(255, 244, 220, 0.08);
+        }
+
+        .control-key,
+        .toggle-pill {
+            flex-shrink: 0;
+            min-width: 8.5rem;
+            padding: 0.45rem 0.8rem;
+            border-radius: 999px;
+            background: rgba(255, 244, 220, 0.12);
+            color: #fff0d2;
+            text-align: center;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .control-desc,
+        .option-copy {
+            flex: 1;
+            color: rgba(249, 238, 218, 0.85);
+            line-height: 1.45;
+        }
+
+        .option-copy strong {
+            display: block;
+            margin-bottom: 0.2rem;
+            color: #fff2d9;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 12rem;
+        }
+
+        .slider-wrap input[type="range"] {
+            width: 100%;
+            accent-color: #f0d6a1;
+        }
+
+        .slider-value {
+            width: 3.5rem;
+            color: #f9eed7;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .toggle {
+            position: relative;
+            width: 3.5rem;
+            height: 2rem;
+            flex-shrink: 0;
+        }
+
+        .toggle input {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 100px;
-            color: red;
-            font-family: Arial;
-            display: none;
-            user-select: none;
-            pointer-events: none;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
         }
+
+        .toggle span {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            background: rgba(255, 248, 235, 0.14);
+            transition: background 0.2s ease;
+        }
+
+        .toggle span::after {
+            content: "";
+            position: absolute;
+            top: 0.2rem;
+            left: 0.2rem;
+            width: 1.6rem;
+            height: 1.6rem;
+            border-radius: 50%;
+            background: #f8ebd1;
+            transition: transform 0.2s ease;
+        }
+
+        .toggle input:checked + span {
+            background: rgba(255, 220, 155, 0.34);
+        }
+
+        .toggle input:checked + span::after {
+            transform: translateX(1.5rem);
+        }
+
+        .screen-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 1.8rem;
+        }
+
+        .screen-button {
+            padding: 0.8rem 1.2rem;
+            border: 1px solid rgba(255, 244, 220, 0.24);
+            border-radius: 999px;
+            background: rgba(255, 250, 238, 0.08);
+            color: #fff0d2;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .screen-button:hover {
+            background: rgba(255, 250, 238, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .countdown,
         .warning {
-            position: absolute;
-            top: 50%;
+            position: fixed;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 40px;
-            color: yellow;
-            font-family: Arial;
             display: none;
-            user-select: none;
             pointer-events: none;
+            z-index: 30;
+            text-transform: uppercase;
+        }
+
+        .countdown {
+            top: 50%;
+            color: #ffead2;
+            font-size: clamp(72px, 8vw, 128px);
+            text-shadow: 0 0 20px rgba(255, 120, 60, 0.35);
+        }
+
+        .warning {
+            top: 44%;
+            color: #ffe67e;
+            font-size: clamp(34px, 4vw, 72px);
+            letter-spacing: 0.18em;
+            text-shadow: 0 0 20px rgba(255, 210, 79, 0.4);
+        }
+
+        .reduced-motion .angel-scene,
+        .reduced-motion .angel-scene::after,
+        .reduced-motion #angelParticles .angel-particle,
+        .reduced-motion .screen {
+            animation: none !important;
+            transition: none !important;
+        }
+
+        .reduced-motion #angelParticles .angel-particle {
+            display: none;
+        }
+
+        @keyframes angelBob {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-18px);
+            }
+        }
+
+        @keyframes auraPulse {
+            0%, 100% {
+                opacity: 0.45;
+                transform: translateX(-50%) scale(1);
+            }
+            50% {
+                opacity: 0.75;
+                transform: translateX(-50%) scale(1.08);
+            }
+        }
+
+        @keyframes angelParticle {
+            0% {
+                opacity: 0;
+                transform: translate3d(0, 10px, 0) scale(0.5);
+            }
+            20% {
+                opacity: 0.95;
+            }
+            100% {
+                opacity: 0;
+                transform: translate3d(28px, -170px, 0) scale(1.25);
+            }
+        }
+
+        @media (max-width: 900px) {
+            .angel-scene {
+                left: -4%;
+                width: 46%;
+            }
+
+            .screen-view {
+                padding: 1.2rem 1.2rem 1.4rem 26%;
+            }
+
+            .screen-card {
+                padding: 1.4rem;
+            }
+
+            .boss-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .control-row,
+            .option-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .slider-wrap {
+                width: 100%;
+                min-width: 0;
+            }
+        }
+
+        @media (max-width: 700px) {
+            .angel-scene {
+                left: -18%;
+                width: 62%;
+                opacity: 0.55;
+            }
+
+            .screen-view {
+                padding: 1rem;
+                background: linear-gradient(180deg, rgba(8, 8, 8, 0.34) 0%, rgba(8, 8, 8, 0.82) 38%, rgba(8, 8, 8, 0.92) 100%);
+                justify-content: flex-end;
+            }
+
+            .screen-card {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div id="bossSelect" class="boss-select">
-        <div class="boss-tile" onclick="selectBoss('redsquareboss')">
-            <div style="width: 50px; height: 50px; background: red; margin-bottom: 10px;"></div>
-            <p>Red Square</p>
+    <div id="bossSelect">
+        <div class="menu">
+            <div class="menu-stage">
+                <div class="angel-scene">
+                    <div class="angel"></div>
+                    <div id="angelParticles"></div>
+                </div>
+
+                <div id="homeButtons" class="screen active">
+                    <div class="menu-button-layer">
+                        <div class="Start_Button Button_Display"></div>
+                        <div class="Controls_Button Button_Display"></div>
+                        <div class="Options_Button Button_Display"></div>
+                    </div>
+
+                    <div class="menu-hitboxes">
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <polygon points="60,24.44 94.375,45.56 93.75,54.44 59.375,32.22"
+                                onmouseenter="setButtonHover('Start', true)"
+                                onmouseleave="setButtonHover('Start', false)"
+                                onclick="openBossSelectMenu()" />
+                        </svg>
+
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <polygon points="59.375,38.89 93.75,58.89 93.125,67.78 59.375,50.11"
+                                onmouseenter="setButtonHover('Controls', true)"
+                                onmouseleave="setButtonHover('Controls', false)"
+                                onclick="openControlsMenu()" />
+                        </svg>
+
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                            <polygon points="58.75,51.11 92.5,72.22 92.1875,80 58.125,58.33"
+                                onmouseenter="setButtonHover('Options', true)"
+                                onmouseleave="setButtonHover('Options', false)"
+                                onclick="openOptionsMenu()" />
+                        </svg>
+                    </div>
+                </div>
+
+                <section id="bossSelectScreen" class="screen">
+                    <div class="screen-view">
+                        <div class="screen-card">
+                            <h2>Boss Select</h2>
+                            <p class="panel-lead">Pick a boss and head straight into the fight. Best times appear after your first clear.</p>
+
+                            <div class="boss-grid">
+                                <div class="boss-tile" data-boss="redsquareboss" onclick="selectBoss('redsquareboss')">
+                                    <div style="width: 52px; height: 52px; background: red; box-shadow: 0 0 18px rgba(255, 76, 76, 0.5);"></div>
+                                    <div class="boss-name">Red Square</div>
+                                    <div class="boss-record is-hidden" data-role="record">Best: --:--.--</div>
+                                </div>
+                                <div class="boss-tile" data-boss="waffleboss" onclick="selectBoss('waffleboss')">
+                                    <img src="sprites/waffle.png" alt="Waffle" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 16px rgba(255, 200, 120, 0.7);">
+                                    <div class="boss-name">Waffle</div>
+                                    <div class="boss-record is-hidden" data-role="record">Best: --:--.--</div>
+                                </div>
+                                <div class="boss-tile" data-boss="balrogboss" onclick="selectBoss('balrogboss')">
+                                    <div style="width: 82px; height: 82px; background-image: url('sprites/balrog/balrog.png'); background-size: 1000% 200%; background-position: 0 0; image-rendering: pixelated;"></div>
+                                    <div class="boss-name">Balrog</div>
+                                    <div class="boss-record is-hidden" data-role="record">Best: --:--.--</div>
+                                </div>
+                                <div class="boss-tile is-locked">
+                                    <div class="boss-name">???</div>
+                                </div>
+                                <div class="boss-tile is-locked">
+                                    <div class="boss-name">???</div>
+                                </div>
+                                <div class="boss-tile is-locked">
+                                    <div class="boss-name">???</div>
+                                </div>
+                            </div>
+
+                            <div class="screen-actions">
+                                <button class="screen-button" onclick="showMainMenu()">Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="controlsScreen" class="screen">
+                    <div class="screen-view">
+                        <div class="screen-card">
+                            <h2>Controls</h2>
+                            <p class="panel-lead">Everything you need to survive for at least a few extra seconds.</p>
+
+                            <div class="control-list">
+                                <div class="control-row">
+                                    <div class="control-key">Mouse</div>
+                                    <div class="control-desc">Move your character with the mouse.</div>
+                                </div>
+                                <div class="control-row">
+                                    <div class="control-key">Left Click</div>
+                                    <div class="control-desc">Hold to fire while the fight is active.</div>
+                                </div>
+                                <div class="control-row">
+                                    <div class="control-key">Space</div>
+                                    <div class="control-desc">Skip the boss countdown and spawn them immediately.</div>
+                                </div>
+                                <div class="control-row">
+                                    <div class="control-key">Escape</div>
+                                    <div class="control-desc">Return to the main menu from a fight or any menu screen.</div>
+                                </div>
+                                <div class="control-row">
+                                    <div class="control-key">R</div>
+                                    <div class="control-desc">Restart after a game over without returning to the menu first.</div>
+                                </div>
+                            </div>
+
+                            <div class="screen-actions">
+                                <button class="screen-button" onclick="showMainMenu()">Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="optionsScreen" class="screen">
+                    <div class="screen-view">
+                        <div class="screen-card">
+                            <h2>Options</h2>
+                            <p class="panel-lead">Tune the feel of the menu and audio. Settings save automatically on this browser.</p>
+
+                            <div class="option-stack">
+                                <div class="option-row">
+                                    <div class="option-copy">
+                                        <strong>Music Volume</strong>
+                                        Control looping theme tracks during boss fights.
+                                    </div>
+                                    <div class="slider-wrap">
+                                        <input id="musicSlider" type="range" min="0" max="100" value="100">
+                                        <div id="musicValue" class="slider-value">100%</div>
+                                    </div>
+                                </div>
+
+                                <div class="option-row">
+                                    <div class="option-copy">
+                                        <strong>Sound Effects</strong>
+                                        Adjust boss roars, attacks, explosions, and other combat sounds.
+                                    </div>
+                                    <div class="slider-wrap">
+                                        <input id="sfxSlider" type="range" min="0" max="100" value="100">
+                                        <div id="sfxValue" class="slider-value">100%</div>
+                                    </div>
+                                </div>
+
+                                <div class="option-row">
+                                    <div class="option-copy">
+                                        <strong>Reduced Menu Motion</strong>
+                                        Turns off the angel float and menu particles if you want a calmer screen.
+                                    </div>
+                                    <div class="slider-wrap" style="justify-content:flex-end;">
+                                        <div class="toggle-pill">Menu FX</div>
+                                        <label class="toggle">
+                                            <input id="reducedMotionToggle" type="checkbox">
+                                            <span></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="screen-actions">
+                                <button class="screen-button" onclick="showMainMenu()">Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
-        <div class="boss-tile" onclick="selectBoss('waffleboss')">
-            <img src="sprites/waffle.png" alt="Waffle" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 12px rgba(255, 200, 120, 0.7); margin-bottom: 10px;">
-            <p>Waffle</p>
-        </div>
-        <div class="boss-tile" onclick="selectBoss('balrogboss')">
-            <div style="width: 80px; height: 80px; background-image: url('sprites/balrog/balrog.png'); background-size: 1000% 200%; background-position: 0 0; image-rendering: pixelated; margin-bottom: 10px;"></div>
-            <p>Balrog</p>
-        </div>
-        <div class="boss-tile"><p>???</p></div>
-        <div class="boss-tile"><p>???</p></div>
-        <div class="boss-tile"><p>???</p></div>
-        <div class="boss-tile"><p>???</p></div>
-        <div class="boss-tile"><p>???</p></div>
-        <div class="boss-tile"><p>???</p></div>
     </div>
+
     <div id="countdown" class="countdown"></div>
-    <div id="warning" class="warning">WARNING!</div>
+    <div id="warning" class="warning">Warning!</div>
     <canvas id="gameCanvas"></canvas>
+
+    <script>
+        function setButtonHover(buttonName, isHovering) {
+            const button = document.querySelector("." + buttonName + "_Button");
+            if (!button) return;
+
+            const suffix = isHovering ? "_Hover" : "";
+            button.style.backgroundImage = "url('./sprites/Menu/" + buttonName + suffix + ".png')";
+        }
+    </script>
     <script src="spriteSheetAnimation.js"></script>
     <script src="boss.js"></script>
     <script src="player.js"></script>
