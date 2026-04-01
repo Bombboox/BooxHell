@@ -106,6 +106,43 @@
             animation: auraPulse 4.8s ease-in-out infinite;
         }
 
+        #angelSpeech {
+            position: absolute;
+            left: 80%;
+            top: -2%;
+            width: 60%;
+            height: 60%;
+            opacity: 0.9;
+            pointer-events: auto; /* allow interaction inside the speech area */
+
+            background: url("sprites/Menu/speech.png") center / contain no-repeat;
+        }
+
+        #angelSpeech .speech-text {
+            position: absolute;
+            left: 8.333%;
+            top: 32.856%;
+            width: 76.25%;
+            height: 22.807%;
+            padding: 0.5rem 0.7rem;
+            overflow: auto;
+            color: #0b0b0b;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: clamp(12px, 1.6vw, 18px);
+            line-height: 1.3;
+            outline: none;
+            white-space: pre-wrap;
+            caret-color: #222;
+            background: transparent;
+            -webkit-font-smoothing: antialiased;
+            font-family: Comic Sans MS, cursive, sans-serif;
+        }
+
+        #angelSpeech .speech-text:empty::before {
+            color: rgba(0,0,0,0.35);
+            font-style: italic;
+        }
+
         #angelParticles {
             position: absolute;
             inset: 0;
@@ -535,9 +572,12 @@
     <div id="bossSelect">
         <div class="menu">
             <div class="menu-stage">
-                <div class="angel-scene">
+                    <div class="angel-scene">
                     <div class="angel"></div>
                     <div id="angelParticles"></div>
+                    <div id="angelSpeech">
+                        <div class="speech-text" aria-label="Angel speech">(click to edit)</div>
+                    </div>
                 </div>
 
                 <div id="homeButtons" class="screen active">
@@ -704,7 +744,7 @@
     <div id="countdown" class="countdown"></div>
     <div id="warning" class="warning">Warning!</div>
     <canvas id="gameCanvas"></canvas>
-
+ Yo
     <script>
         function setButtonHover(buttonName, isHovering) {
             const button = document.querySelector("." + buttonName + "_Button");
@@ -713,6 +753,82 @@
             const suffix = isHovering ? "_Hover" : "";
             button.style.backgroundImage = "url('./sprites/Menu/" + buttonName + suffix + ".png')";
         }
+
+        function fitText(element) {
+            let fontSize = 100; 
+            element.style.fontSize = fontSize + "px";
+            
+            while (element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth) {
+                fontSize -= 1;
+                element.style.fontSize = fontSize + "px";
+                if (fontSize <= 5) break; 
+            }
+        }
+
+        function changeAndFitText(element, text) {
+                element.innerHTML = text;
+                fitText(element);
+        }
+
+        const speech = document.querySelector('#angelSpeech .speech-text');
+        const possibleMessages = [
+            "Welcome to Hell, you look like you'll make it far.",
+            "You'll get used to dying, sorry.",
+            "Azrael sends his regards.",
+            "I'll help you out of here... you just have to pass the trials first.",
+            "An eternity goes by quick if you're good at dodging.",
+            "Heaven is overrated anyways, the bosses are harder up there!",
+            "Between you and me, I think demons are more fun than angels.",
+            "Good luck, dear.",
+            "This place really needs a renovation, what poor UI design choices they made down here!",
+            "Ah, the screams of the damned.",
+            "I wonder if I'll be the twist final boss!",
+            "Don't forget to read the controls, buddy!",
+            "In my native tongue, we call this place <span class='glitch'>AAAAAAA</span>.",
+            "Greetings traveler, my name is <span class='glitch'>AAAAAAA</span>, but you can just call me Cynthia.",
+            "I will be your guide here in Hell.",
+            "Rather hot in here isn't it? I do wish they had better air conditioning.",
+            "If you manage to clear all the bosses down here, I might have a little surprise for you.",
+            "Do you like pancakes more, or Waffles? Teehee!",
+            "I enjoy watching you play.",
+            "Don't give up, you have a lot of potential.",
+            "I hope my wings don't catch fire, burn marks are such a hassle to get out.",
+            "Why are you staring at me? Do I have something on my face?",
+            "You wouldn't want to see my true form, it's not very pretty.",
+            "If you win, I'll let you try on my wings.",
+            "My back's been aching all day, I think it's the wings.",
+            "I like the warmth down here, being transferred here wasn't so bad.",
+            "I used to be a guardian angel, then I took one nap, ONE nap and the guy I was supposed to be watching had the nerve to die on me. Like I deserve a demotion for that.",
+            "Hey so, you think you could put in a good word for me after all this? I mean, I'm doing my best here, aren't I?",
+            "I'm pretty strong too.",
+            "❤️❤️❤️",
+            "I hope you have fun, that's what existence is all about, right?",
+            "You get a break after a couple eons, maybe we could grab a coffee then.",
+            "If dodging is your power, what are you without it? Now that I think about it, the answer is probably dead.",
+            "Could you ask Balrog for a stick of gum? After he's done tearing you apart, of course.",
+            "You have no idea how many guys have tried the 'did you fall from heaven' line on me. Yes, I get it, very original."
+        ]
+
+        function applyGlitch() {
+            const glitchEls = document.querySelectorAll('.glitch');
+
+            glitchEls.forEach(el => {
+                const original = el.textContent;
+                let scrambled = '';
+                for (let c of original) {
+                    if (Math.random() < 0.3) { 
+                        scrambled += String.fromCharCode(33 + Math.floor(Math.random() * 94));
+                    } else {
+                        scrambled += c;
+                    }
+                }
+                el.textContent = scrambled;
+            });
+        }
+
+        setInterval(applyGlitch, 50);
+        changeAndFitText(speech, possibleMessages[Math.floor(Math.random() * possibleMessages.length)]);
+
     </script>
     <script src="spriteSheetAnimation.js"></script>
     <script src="boss.js"></script>
