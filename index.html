@@ -57,8 +57,8 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            width: min(100vw, calc(100vh * 16 / 9));
-            aspect-ratio: 16 / 9;
+            width: min(100vw, calc(100vh * (16 / 9)));
+            aspect-ratio: 16 / 9; 
             transform: translate(-50%, -50%);
             background-image: url("./sprites/Menu/Menu.png");
             background-position: center;
@@ -589,21 +589,21 @@
 
                     <div class="menu-hitboxes">
                         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <polygon points="60,24.44 94.375,45.56 93.75,54.44 59.375,32.22"
+                            <polygon points="68.75,43.24 89.84,42.87 89.38,50.00 68.39,48.98"
                                 onmouseenter="setButtonHover('Start', true)"
                                 onmouseleave="setButtonHover('Start', false)"
                                 onclick="openBossSelectMenu()" />
                         </svg>
 
                         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <polygon points="59.375,38.89 93.75,58.89 93.125,67.78 59.375,50.11"
+                            <polygon points="68.91,50.93 89.58,51.85 89.11,59.17 68.07,56.39"
                                 onmouseenter="setButtonHover('Controls', true)"
                                 onmouseleave="setButtonHover('Controls', false)"
                                 onclick="openControlsMenu()" />
                         </svg>
 
                         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <polygon points="58.75,51.11 92.5,72.22 92.1875,80 58.125,58.33"
+                            <polygon points="67.92,58.70 89.01,61.30 88.23,68.61 67.24,64.07"
                                 onmouseenter="setButtonHover('Options', true)"
                                 onmouseleave="setButtonHover('Options', false)"
                                 onclick="openOptionsMenu()" />
@@ -797,8 +797,8 @@
             "You wouldn't want to see my true form, it's not very pretty.",
             "If you win, I'll let you try on my wings.",
             "My back's been aching all day, I think it's the wings.",
-            "I like the warmth down here, being transferred here wasn't so bad.",
-            "I used to be a guardian angel, then I took one nap, ONE nap and the guy I was supposed to be watching had the nerve to die on me. Like I deserve a demotion for that.",
+            "I like the warmth down here, being transferred wasn't so bad.",
+            "Used to be a guardian angel, then I take one nap and the guy I'm supposed to be watching breaks his neck. Like I deserve a demotion for that.",
             "Hey so, you think you could put in a good word for me after all this? I mean, I'm doing my best here, aren't I?",
             "I'm pretty strong too.",
             "❤️❤️❤️",
@@ -826,8 +826,43 @@
             });
         }
 
+        const spritePaths = [
+            "./sprites/Menu/Menu.png",
+            "./sprites/Menu/Start.png",
+            "./sprites/Menu/Start_Hover.png",
+            "./sprites/Menu/Controls.png",
+            "./sprites/Menu/Controls_Hover.png",
+            "./sprites/Menu/Options.png",
+            "./sprites/Menu/Options_Hover.png",
+            "./sprites/Menu/angel.png",
+            "./sprites/Menu/speech.png",
+            "./sprites/balrog/aquarium.png",
+        ];
+
+        const loadedImages = {};
+        let loadedCount = 0;
+
+        function preloadImages(paths, callback) {
+            paths.forEach(path => {
+                const img = new Image();
+                img.src = path;
+
+                img.onload = () => {
+                    loadedCount++;
+                    loadedImages[path] = img;
+
+                    if (loadedCount === paths.length) {
+                        callback();
+                    }
+                };
+            });
+        }
+
         setInterval(applyGlitch, 50);
         changeAndFitText(speech, possibleMessages[Math.floor(Math.random() * possibleMessages.length)]);
+        preloadImages(spritePaths, () => {
+            console.log("Get out of here! Nothing to see in this console.");
+        });
 
     </script>
     <script src="spriteSheetAnimation.js"></script>

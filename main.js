@@ -60,7 +60,6 @@ let lastFrameTime = null;
 let lastExplosionFrameTime = null;
 
 function setMenuScreen(screen) {
-    homeButtons.style.display = screen === 'home' ? 'grid' : 'none';
     bossSelectScreen.classList.toggle('active', screen === 'boss-select');
     controlsScreen.classList.toggle('active', screen === 'controls');
     optionsScreen.classList.toggle('active', screen === 'options');
