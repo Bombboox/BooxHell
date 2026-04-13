@@ -30,10 +30,22 @@
         }
 
         canvas {
+            position: fixed;
+            inset: 0;
             display: block;
             width: 100vw;
             height: 100vh;
-            background: black;
+        }
+
+        #bossRenderCanvas {
+            z-index: 1;
+            pointer-events: none;
+            display: none;
+        }
+
+        #gameCanvas {
+            z-index: 2;
+            background: transparent;
         }
 
         #bossSelect {
@@ -633,8 +645,10 @@
                                     <div class="boss-name">Balrog</div>
                                     <div class="boss-record is-hidden" data-role="record">Best: --:--.--</div>
                                 </div>
-                                <div class="boss-tile is-locked">
-                                    <div class="boss-name">???</div>
+                                <div class="boss-tile" data-boss="reaverboss" onclick="selectBoss('reaverboss')">
+                                    <img src="sprites/reaver/reaver.png" alt="Reaver" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 20px rgba(181, 110, 255, 0.8);">
+                                    <div class="boss-name">Reaver</div>
+                                    <div class="boss-record is-hidden" data-role="record">Best: --:--.--</div>
                                 </div>
                                 <div class="boss-tile is-locked">
                                     <div class="boss-name">???</div>
@@ -743,6 +757,7 @@
 
     <div id="countdown" class="countdown"></div>
     <div id="warning" class="warning">Warning!</div>
+    <canvas id="bossRenderCanvas"></canvas>
     <canvas id="gameCanvas"></canvas>
  Yo
     <script>
@@ -837,6 +852,7 @@
             "./sprites/Menu/angel.png",
             "./sprites/Menu/speech.png",
             "./sprites/balrog/aquarium.png",
+            "./sprites/reaver/reaver.png",
         ];
 
         const loadedImages = {};
@@ -866,12 +882,15 @@
 
     </script>
     <script src="spriteSheetAnimation.js"></script>
+    <script src="pixi.min.js"></script>
     <script src="boss.js"></script>
     <script src="player.js"></script>
     <script src="sound.js"></script>
     <script src="redSquareBoss.js"></script>
     <script src="waffleBoss.js"></script>
     <script src="balrogBoss.js"></script>
+    <script src="reaverBoss.js"></script>
+    <script src="bossPixiRenderer.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

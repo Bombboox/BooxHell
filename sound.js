@@ -115,5 +115,13 @@ sound.add('balrog_chomp', 'sounds/balrog/chomp.wav', { volume: 0.3, category: 's
 sound.add('balrog_buzzer', 'sounds/balrog/buzzer.ogg', { volume: 0.25, category: 'sfx' });
 sound.add('balrog_clamopen', 'sounds/balrog/clamopen.ogg', { volume: 0.35, category: 'sfx' });
 sound.add('balrog_pearlfire', 'sounds/balrog/pearlfire.ogg', { volume: 0.28, category: 'sfx' });
+sound.add('reaver_theme', 'sounds/reaver/reaver_theme.wav', { loop: true, volume: 0.55, category: 'music' });
+sound.add('reaver_darkness', 'sounds/reaver/darkness.mp3', { volume: 0.4, category: 'sfx' });
+sound.add('reaver_fire', 'sounds/reaver/reaver_fire.mp3', { volume: 0.28, category: 'sfx' });
+sound.add('reaver_wave', 'sounds/reaver/wave.mp3', { volume: 0.26, category: 'sfx' });
+sound.add('reaver_ray', 'sounds/reaver/ray.mp3', { volume: 0.22, category: 'sfx' });
+sound.add('reaver_split', 'sounds/reaver/split.mp3', { volume: 0.22, category: 'sfx' });
+sound.add('reaver_lightning_1', 'sounds/reaver/lightning_1.mp3', { volume: 0.2, category: 'sfx' });
+sound.add('reaver_lightning_2', 'sounds/reaver/lightning_2.mp3', { volume: 0.2, category: 'sfx' });
 
 window.sound = sound;

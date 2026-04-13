@@ -1,5 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
+const bossRenderCanvas = document.getElementById('bossRenderCanvas');
 const ctx = canvas.getContext('2d');
+const bossPixiRenderer = new BossPixiRenderer(bossRenderCanvas);
 const bossSelect = document.getElementById('bossSelect');
 const countdownEl = document.getElementById('countdown');
 const warningEl = document.getElementById('warning');
@@ -19,6 +21,19 @@ const MAX_DELTA_MS = 100;
 const MUSIC_VOLUME_STORAGE_KEY = 'booxhellMusicVolume';
 const SFX_VOLUME_STORAGE_KEY = 'booxhellSfxVolume';
 const REDUCED_MOTION_STORAGE_KEY = 'booxhellReducedMotion';
+let currentBoss = null;
+let gameOver = false;
+let gameStarted = false;
+let pulseValue = 0;
+let pulseDirection = 1;
+let loop;
+let deathParticles = [];
+let fightStartTime = 0;
+let bestTimes = {};
+let defeatedBosses = {};
+let entranceAnimation = null;
+let lastFrameTime = null;
+let lastExplosionFrameTime = null;
 const angelMessages = [
     'Welcome To Hell',
     'Choose Your Suffering',
@@ -27,9 +42,25 @@ const angelMessages = [
     'Only The Damned Click Play'
 ];
 
-// Set canvas to full window size
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+function resizeGameCanvases() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    bossRenderCanvas.width = window.innerWidth;
+    bossRenderCanvas.height = window.innerHeight;
+    bossPixiRenderer.resize(window.innerWidth, window.innerHeight);
+}
+
+function usesPixiBossRenderer(boss = currentBoss) {
+    return Boolean(boss?.usesPixiRenderer && bossPixiRenderer?.enabled && bossPixiRenderer?.initialized);
+}
+
+function updateRendererVisibility() {
+    const showBossRenderCanvas = usesPixiBossRenderer();
+    bossRenderCanvas.style.display = showBossRenderCanvas ? 'block' : 'none';
+}
+
+resizeGameCanvases();
+updateRendererVisibility();
 
 // Create starfield
 const stars = [];
@@ -45,19 +76,6 @@ for(let i = 0; i < 200; i++) {
 
 // Game objects
 const player = new Player(canvas);
-let currentBoss = null;
-let gameOver = false;
-let gameStarted = false;
-let pulseValue = 0;
-let pulseDirection = 1;
-let loop;
-let deathParticles = [];
-let fightStartTime = 0;
-let bestTimes = {};
-let defeatedBosses = {};
-let entranceAnimation = null;
-let lastFrameTime = null;
-let lastExplosionFrameTime = null;
 
 function setMenuScreen(screen) {
     bossSelectScreen.classList.toggle('active', screen === 'boss-select');
@@ -264,7 +282,7 @@ function updateBossEntrance(deltaFrames) {
 }
 
 function updateStars(deltaFrames) {
-    if (!currentBoss?.active) return;
+    if (!currentBoss?.active || usesPixiBossRenderer()) return;
     
     stars.forEach(star => {
         star.y += star.speed * deltaFrames;
@@ -372,11 +390,20 @@ function update(deltaFrames, currentTime) {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const drewCustomBackground = currentBoss?.drawBackground?.() ?? false;
-    if (!drewCustomBackground) {
-        drawStars();
+    updateRendererVisibility();
+
+    if (usesPixiBossRenderer()) {
+        bossPixiRenderer.render(currentBoss);
+        currentBoss?.drawHealthBar?.();
+    } else {
+        bossPixiRenderer.clear();
+        const drewCustomBackground = currentBoss?.drawBackground?.() ?? false;
+        if (!drewCustomBackground) {
+            drawStars();
+        }
+        if (currentBoss) currentBoss.draw(ctx);
     }
-    if (currentBoss) currentBoss.draw(ctx);
+
     player.draw(ctx);
     drawDeathParticles();
     drawTimer();
@@ -399,10 +426,12 @@ function returnToMenu() {
     cancelAnimationFrame(loop);
     bossSelect.style.display = 'flex';
     canvas.style.display = 'none';
+    bossRenderCanvas.style.display = 'none';
     currentBoss?.onStop?.();
     if (typeof sound !== 'undefined') {
         sound.stop('waffle_theme');
         sound.stop('balrog_theme');
+        sound.stop('reaver_theme');
     }
     resetGame();
     showMainMenu();
@@ -418,6 +447,8 @@ function resetGame() {
     lastExplosionFrameTime = null;
     player.reset(canvas);
     currentBoss = null;
+    bossPixiRenderer.clear();
+    updateRendererVisibility();
 }
 
 function restartGame() {
@@ -440,12 +471,17 @@ function restartGame() {
             currentBoss = new BalrogBoss(canvas);
             currentBoss.onStart();
             break;
+        case 'reaverboss':
+            currentBoss = new ReaverBoss(canvas);
+            currentBoss.onStart();
+            break;
         // Add more boss types here
     }
     currentBoss.y = -100;
     currentBoss.active = true;
     gameStarted = true;
     fightStartTime = Date.now();
+    updateRendererVisibility();
     if (shouldUseBossEntrance(currentBoss)) {
         startBossEntrance();
     }
@@ -492,9 +528,14 @@ function animateExplosion(particles, timestamp) {
     lastExplosionFrameTime = currentTime;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const drewCustomBackground = currentBoss?.drawBackground?.() ?? false;
-    if (!drewCustomBackground) {
-        drawStars();
+    if (usesPixiBossRenderer()) {
+        bossPixiRenderer.render(currentBoss);
+        currentBoss?.drawHealthBar?.();
+    } else {
+        const drewCustomBackground = currentBoss?.drawBackground?.() ?? false;
+        if (!drewCustomBackground) {
+            drawStars();
+        }
     }
     
     let stillActive = false;
@@ -527,6 +568,7 @@ function animateExplosion(particles, timestamp) {
         if (typeof sound !== 'undefined') {
             if (currentBoss instanceof WaffleBoss) sound.stop('waffle_theme');
             if (currentBoss instanceof BalrogBoss) sound.stop('balrog_theme');
+            if (currentBoss instanceof ReaverBoss) sound.stop('reaver_theme');
         }
         const finalTime = Date.now() - fightStartTime;
         const currentBossType = currentBoss.constructor.name.toLowerCase();
@@ -553,6 +595,7 @@ function animateExplosion(particles, timestamp) {
         setTimeout(() => {
             bossSelect.style.display = 'flex';
             canvas.style.display = 'none';
+            bossRenderCanvas.style.display = 'none';
             gameStarted = false;
             currentBoss.health = currentBoss.maxHealth;
             currentBoss.y = -100;
@@ -567,6 +610,7 @@ function animateExplosion(particles, timestamp) {
 function selectBoss(bossType) {
     bossSelect.style.display = 'none';
     canvas.style.display = 'block';
+    bossRenderCanvas.style.display = 'none';
     gameStarted = true;
     
     // Create the appropriate boss based on type
@@ -580,8 +624,12 @@ function selectBoss(bossType) {
         case 'balrogboss':
             currentBoss = new BalrogBoss(canvas);
             break;
+        case 'reaverboss':
+            currentBoss = new ReaverBoss(canvas);
+            break;
         // Add more boss types here
     }
+    updateRendererVisibility();
     
     // Start countdown
     let count = 3;
@@ -681,3 +729,8 @@ if (reducedMotionToggle) {
 }
 loadSavedData();
 showMainMenu();
+
+window.addEventListener('resize', () => {
+    resizeGameCanvases();
+    bossPixiRenderer.clear();
+});
