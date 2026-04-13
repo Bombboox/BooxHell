@@ -40,12 +40,19 @@ class BossPixiRenderer {
         this.stage = this.app.stage;
         this.stage.sortableChildren = true;
         this.initialized = true;
+        this.resize(
+            this.canvas.clientWidth || this.canvas.width || window.innerWidth,
+            this.canvas.clientHeight || this.canvas.height || window.innerHeight
+        );
+        this.app.render();
         return true;
     }
 
     resize(width, height) {
         this.canvas.width = width;
         this.canvas.height = height;
+        this.canvas.style.width = `${width}px`;
+        this.canvas.style.height = `${height}px`;
         if (this.initialized) {
             this.app.renderer.resize(width, height);
         }
@@ -100,8 +107,9 @@ class BossPixiRenderer {
         return texture;
     }
 
-    getWaveTexture() {
-        return this.getGeneratedTexture('reaver-wave', 180, 72, (ctx, width, height) => {
+    getWaveTexture(phase = 0) {
+        const normalizedPhase = Number.isFinite(phase) ? phase : 0;
+        return this.getGeneratedTexture(`reaver-wave:${normalizedPhase.toFixed(3)}`, 180, 72, (ctx, width, height) => {
             const centerY = height / 2;
             const startX = 8;
             const endX = width - 8;
@@ -128,10 +136,50 @@ class BossPixiRenderer {
 
             ctx.shadowColor = 'rgba(182, 104, 255, 0.42)';
             ctx.shadowBlur = 12;
-            drawRibbon(14, 'rgba(182, 104, 255, 0.3)', 0, 0.88);
+            drawRibbon(14, 'rgba(182, 104, 255, 0.3)', normalizedPhase, 0.88);
             ctx.shadowBlur = 0;
-            drawRibbon(8, '#c889ff', 0, 1);
-            drawRibbon(2.5, 'rgba(255, 236, 255, 0.95)', Math.PI / 3, 0.95);
+            drawRibbon(8, '#c889ff', normalizedPhase, 1);
+        });
+    }
+
+    getStormTexture() {
+        return this.getGeneratedTexture('reaver-storm', 240, 240, (ctx, width, height) => {
+            const cx = width / 2;
+            const cy = height / 2;
+            const bg = ctx.createRadialGradient(cx, cy, width * 0.1, cx, cy, width * 0.5);
+            bg.addColorStop(0, 'rgba(239, 226, 255, 0.8)');
+            bg.addColorStop(0.35, 'rgba(158, 104, 255, 0.42)');
+            bg.addColorStop(0.72, 'rgba(68, 24, 116, 0.3)');
+            bg.addColorStop(1, 'rgba(18, 6, 34, 0)');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, width, height);
+
+            for (let i = 0; i < 9; i++) {
+                const radius = width * (0.18 + i * 0.03);
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(198, 146, 255, ${0.08 + (8 - i) * 0.02})`;
+                ctx.lineWidth = 2 + i * 0.25;
+                ctx.stroke();
+            }
+        });
+    }
+
+    getStormCoreTexture() {
+        return this.getGeneratedTexture('reaver-storm-core', 96, 96, (ctx, width, height) => {
+            const glow = ctx.createRadialGradient(
+                width / 2,
+                height / 2,
+                width * 0.06,
+                width / 2,
+                height / 2,
+                width * 0.5
+            );
+            glow.addColorStop(0, 'rgba(255, 245, 255, 0.95)');
+            glow.addColorStop(0.5, 'rgba(223, 171, 255, 0.45)');
+            glow.addColorStop(1, 'rgba(223, 171, 255, 0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, 0, width, height);
         });
     }
 
@@ -167,11 +215,26 @@ class BossPixiRenderer {
 
     getBackgroundTexture(width, height) {
         return this.getGeneratedTexture(`reaver-background:${width}:${height}`, width, height, (ctx, w, h) => {
-            const gradient = ctx.createLinearGradient(0, 0, 0, h);
-            gradient.addColorStop(0, '#090013');
-            gradient.addColorStop(0.45, '#1b0831');
-            gradient.addColorStop(1, '#040008');
-            ctx.fillStyle = gradient;
+            const base = ctx.createLinearGradient(0, 0, 0, h);
+            base.addColorStop(0, '#06000d');
+            base.addColorStop(0.5, '#140421');
+            base.addColorStop(1, '#020005');
+            ctx.fillStyle = base;
+            ctx.fillRect(0, 0, w, h);
+
+            const radial = ctx.createRadialGradient(
+                w * 0.5,
+                h * 0.26,
+                Math.min(w, h) * 0.08,
+                w * 0.5,
+                h * 0.34,
+                Math.max(w, h) * 0.72
+            );
+            radial.addColorStop(0, 'rgba(208, 126, 255, 0.42)');
+            radial.addColorStop(0.24, 'rgba(144, 66, 222, 0.28)');
+            radial.addColorStop(0.56, 'rgba(74, 22, 122, 0.18)');
+            radial.addColorStop(1, 'rgba(7, 0, 15, 0)');
+            ctx.fillStyle = radial;
             ctx.fillRect(0, 0, w, h);
         });
     }

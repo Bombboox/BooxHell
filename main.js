@@ -59,6 +59,11 @@ function updateRendererVisibility() {
     bossRenderCanvas.style.display = showBossRenderCanvas ? 'block' : 'none';
 }
 
+bossPixiRenderer.ready.then(() => {
+    resizeGameCanvases();
+    updateRendererVisibility();
+}).catch(() => {});
+
 resizeGameCanvases();
 updateRendererVisibility();
 
